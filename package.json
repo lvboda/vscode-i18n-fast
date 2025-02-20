@@ -1,0 +1,134 @@
+{
+  "name": "vscode-i18n-fast",
+  "displayName": "I18n Fast",
+  "description": "A vscode plugin that can quickly upload clipboard images and get image URL.",
+  "version": "1.0.4",
+  "publisher": "lvboda",
+  "author": {
+    "name": "Boda Lü",
+    "url": "https://lvboda.cn",
+    "email": "lv_boda@163.com"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lvboda/vscode-i18n-fast.git"
+  },
+  "icon": "images/logo.png",
+  "homepage": "https://github.com/lvboda/vscode-i18n-fast/blob/master/README.md",
+  "bugs": {
+    "url": "https://github.com/lvboda/vscode-i18n-fast/issues"
+  },
+  "keywords": [
+    "i18n-fast"
+  ],
+  "engines": {
+    "vscode": "^1.73.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:*",
+    "onCommand:i18n-fast.convert",
+    "onCommand:i18n-fast.paste"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "i18n-fast.convert",
+        "title": "%package.commands.convert%"
+      },
+      {
+        "command": "i18n-fast.paste",
+        "title": "%package.commands.paste%"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "%package.configuration.title%",
+      "properties": {
+        "i18n-fast.hookFilePath": {
+          "type": "string",
+          "default": "/i18n-fast.hook.js"
+        },
+        "i18n-fast.autoMatchChinese": {
+          "type": "boolean",
+          "default": true,
+          "description": "%package.configuration.autoMatchChinese%"
+        },
+        "i18n-fast.matchExpr": {
+          "type": "string",
+          "default": "[/(?:'|\"|`)#\\((.+?)\\)(?:'|\"|`)/gs, /#\\((.+?)\\)/gs].map((regex) => _.flatMap([...documentText.matchAll(regex)]));"
+        },
+        "i18n-fast.customParamExpr": {
+          "type": "string",
+          "default": "[matchedGroup[1].split('?i')[0], qs.parse(matchedGroup[1].split('?i')?.[1] || '')];"
+        },
+        "i18n-fast.i18nKeyExpr": {
+          "type": "string",
+          "default": "`${convert2pinyin(realText, { separator: '-', limit: 50 })}.${crypto.MD5(realText).toString(crypto.enc.Hex)}`"
+        },
+        "i18n-fast.i18nValueExpr": {
+          "type": "string"
+        },
+        "i18n-fast.codeOverwriteExpr": {
+          "type": "string",
+          "default": "_.isNil(customParam?.c) ? `${customParam?.isInJsx ? '{' : '' }formatMessage({ id: '${i18nKey}' }${customParam?.v ? `, { ${customParam.v} }` : ''})${customParam?.isInJsx ? '}' : ''}` : `<FormattedMessage id='${i18nKey}'${customParam?.v ? ` values={{ ${customParam.v} }}` : ''}/>`"
+        },
+        "i18n-fast.i18nFilePathExpr": {
+          "type": "string",
+          "default": "fg.sync('app/share/locales/zh-CN/ads.js', { cwd: workspace.getWorkspaceFolder(editor.document.uri)?.uri.fsPath })"
+        },
+        "i18n-fast.i18nFileOverwriteExpr": {
+          "type": "string",
+          "default": "123"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/babel__traverse": "^7.20.6",
+    "@types/copy-paste": "^1.1.33",
+    "@types/crypto-js": "^4.2.2",
+    "@types/esprima": "^4.0.6",
+    "@types/glob": "^8.0.0",
+    "@types/lodash": "^4.17.7",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "16.x",
+    "@types/qs": "^6.9.15",
+    "@types/vscode": "^1.73.0",
+    "@typescript-eslint/eslint-plugin": "^5.42.0",
+    "@typescript-eslint/parser": "^5.42.0",
+    "@vscode/test-electron": "^2.2.0",
+    "eslint": "^8.26.0",
+    "esprima": "^4.0.1",
+    "glob": "^8.0.3",
+    "mocha": "^10.1.0",
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.26.8",
+    "@babel/traverse": "^7.26.8",
+    "axios": "^1.1.3",
+    "copy-paste": "^1.5.3",
+    "crypto": "^1.0.1",
+    "crypto-js": "^4.2.0",
+    "electron-clipboard-ex": "^1.3.3",
+    "fast-glob": "^3.3.2",
+    "form-data": "^4.0.0",
+    "lodash": "^4.17.21",
+    "qs": "^6.13.0",
+    "safe-eval": "^0.4.1",
+    "tiny-pinyin": "^1.3.2"
+  }
+}
