@@ -1,16 +1,18 @@
 /**
  * i18n-fast hook
  * - CommonJS 规范
- * - 可以 require 其他模块或项目里的三方库
+ * - 可以 require 其他模块
  * - 可以返回 Promise
 */
 
 /**
- * @typedef {[string, string, string | null | undefined]} MatchedGroup
-*/
-
-/**
- * @typedef {[string, Record<string, any> | null | undefined]} CustomParam
+ * @typedef {Object} ConvertGroup
+ * @property {string} matchedText
+ * @property {string} i18nValue
+ * @property {string} i18nKey
+ * @property {Record<string, any>} customParam
+ * @property {string} overwriteText
+ * @property {string} documentText
 */
 
 /**
@@ -21,6 +23,9 @@
  * @property {import('crypto-js')} crypto
  * @property {import('lodash')} _
  * @property {(str: string, opt: { separator?: string, lowerCase?: boolean, limit?: number, forceSplit?: boolean }) => string} convert2pinyin
+ * @property {(codeText: string, text: string) => boolean} isInJsx
+ * @property {(codeText: string, text: string) => boolean} isInJsxAttribute
+ * @property {(filePath: string, content: string) => Promise<void>} writeFileByEditor
 */
 
 module.exports = {
@@ -53,7 +58,7 @@ module.exports = {
      * @param {Context & { matchedGroup: MatchedGroup }} context
      * @returns {CustomParam[] | Promise<CustomParam[]>}
      */
-    customParam(context) {
+    convert(context) {
         return [context.matchedGroup[1], null];
     },
     /**
@@ -69,57 +74,7 @@ module.exports = {
      * @param {Context & { originalText: string, realText: string, customParam: CustomParam }} context
      * @returns {string | Promise<string>}
      */
-    i18nKey(context) {
+    write(context) {
         return '';
     },
-    /**
-     * @description
-     * 获取要覆盖的代码文本 必须
-     * 
-     * returns code
-     * @example
-     * // 使用 formatMessage 包裹 key 覆盖文本
-     * codeOverwrite(context) {
-     *   return `formatMessage({ id: '${context.i18nKey}' })`;
-     * }
-     * @param {Context & { i18nKey: string, originalText: string, realText: string, customParam: CustomParam }} context
-     * @returns {string | Promise<string>}
-     */
-    codeOverwrite(context) {
-        return '';
-    },
-    /**
-     * @description
-     * 获取 i18n 文件路径 必须
-     * 
-     * returns i18nFilePath
-     * @example
-     * // 操作 share/locales/zh-CN/common.js 文件
-     * i18nFilePath(context) {
-     *   return ['share/locales/zh-CN/common.js'];
-     * }
-     * @param {Context & { editor: import('vscode').TextEditor }} context
-     * @returns {string[] | Promise<string[]>}
-     */
-    i18nFilePath(context) {
-        return [];
-    },
-    /**
-     * @description
-     * 重写 i18n 文件内容 必须
-     * 
-     * returns i18nFileContent
-     * @example
-     * // 重写 i18n 文件内容
-     * i18nFileOverwrite(context) {
-     *   return `module.exports = {
-     *     ${context.matchedGroups.map(([_, value, key]) => `'${key}': '${value}'`).join(',\n')}
-     *   };`;
-     * }
-     * @param {Context & { fileContent: string, matchedGroups: MatchedGroup[] }} context
-     * @returns {string | Promise<string>}
-     */
-    i18nFileOverwrite(context) {
-        return '';
-    }
 };

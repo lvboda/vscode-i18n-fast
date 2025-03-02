@@ -8,4 +8,6 @@ export const COMMAND_CONVERT_KEY = `${PLUGIN_NAME}.convert`;
 
 export const COMMAND_PASTE_KEY = `${PLUGIN_NAME}.paste`;
 
+export const I18N_MAP_KEY = `@GLOBAL_STATE#i18n-map`;
+
 export const REPOSITORY_URL = "https://github.com/lvboda/vscode-i18n-fast";

@@ -2,32 +2,34 @@ import localize from './localize';
 import { showMessage } from './tips';
 import { REPOSITORY_URL } from './constant';
 
-export function invokeWithErrorHandler<T extends (...args: any[]) => any>(cb: T) {
+type ErrorCallback = (error: Error) => any;
+
+export function asyncInvokeWithErrorHandler<T extends (...args: any[]) => any>(fn: T, errorCallback?: ErrorCallback) {
     return async function (...args: Parameters<T>): Promise<ReturnType<T>> {
         let res;
         try {
-            res = await cb(...args);
+            res = await fn(...args);
         } catch (err: any) {
-            panic(err);
+            panic(err, errorCallback);
         }
         return res;
     };
 }
 
-export function invokeWithErrorHandlerSync<T extends (...args: any[]) => any>(cb: T) {
+export function invokeWithErrorHandler<T extends (...args: any[]) => any>(fn: T, errorCallback?: ErrorCallback) {
     return function (...args: Parameters<T>): ReturnType<T> {
         let res;
         try {
-            res = cb(...args);
+            res = fn(...args);
         } catch (err: any) {
-            panic(err);
+            panic(err, errorCallback);
         }
         return res;
     };
 }
 
-export function panic(error: Error, cb?: (error: Error) => any) {
-    const msg = `${error} [${localize("error.feedback")}](${REPOSITORY_URL}/issues/new?title=${encodeURIComponent(error.toString().replace(/\(|\)|\[|\]/g, " "))})`;
+export function panic(error: Error, cb?: ErrorCallback) {
+    const msg = `${error} ${error.stack} [${localize("error.feedback")}](${REPOSITORY_URL}/issues/new?title=${encodeURIComponent(error.toString().replace(/\(|\)|\[|\]/g, " "))})`;
     !cb && showMessage("error", msg, localize("error.close"));
     cb?.(error);
 }
