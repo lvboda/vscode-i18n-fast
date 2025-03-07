@@ -1,4 +1,4 @@
-import { workspace, WorkspaceEdit, Range } from 'vscode';
+import { workspace, WorkspaceEdit, Range, Uri } from 'vscode';
 import { concat, replace, isNil, range, uniq } from 'lodash';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
@@ -9,8 +9,9 @@ import stringWidth from 'string-width';
 import { invokeWithErrorHandler } from './error';
 import { I18N_MAP_KEY } from './constant';
 
-import type { ExtensionContext, Position, Uri } from 'vscode';
+import type { ExtensionContext, Position, TextDocument } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
+import type { JSXFragment, JSXElement, JSXText } from '@babel/types';
 import type { ConvertGroup, I18nGroup, I18nMap } from './types';
 
 const DISPLAY_ICU_TYPE_MAP = {
@@ -81,19 +82,20 @@ const chineseRegex = /[\u4e00-\u9fa5]/;
 const chineseRegex2 = /[\u4e00-\u9fa5]+|[\u4e00-\u9fa5]/g;
 
 // 提取所有中文字符串
-export function getChineseCharList(data: string) {
+export const matchChinese = (document: TextDocument) => {
+  const documentText = document.getText();
   const result: ConvertGroup[] = [];
   const excludes = ['v-track:'];
   const endChars = ["'", '"', '`', '\n', '>', '<', '}', '{', '(', ')'];
   const replaceKeys = [[/&nbsp;/g, ""]] as const;
-  if (data && chineseRegex.test(data)) {
-    const noteList0 = getNotePositionList(data, '<i18n>', '</i18n>');
-    const noteList1 = getNotePositionList(data, '<!--', '-->');
-    const noteList2 = getNotePositionList(data, '/*', '*/');
-    const noteList3 = getNotePositionList(data, '//', '\n');
+  if (documentText && chineseRegex.test(documentText)) {
+    const noteList0 = getNotePositionList(documentText, '<i18n>', '</i18n>');
+    const noteList1 = getNotePositionList(documentText, '<!--', '-->');
+    const noteList2 = getNotePositionList(documentText, '/*', '*/');
+    const noteList3 = getNotePositionList(documentText, '//', '\n');
     const notePositionList = concat(noteList0, noteList1, noteList2, noteList3);
     let res = null, nextIndex = -1;
-    while (res = chineseRegex2.exec(data)) {
+    while (res = chineseRegex2.exec(documentText)) {
       const c = res[0], i = res.index;
       let begin = i - 1, end = i + 1;
       let key = c;
@@ -103,39 +105,43 @@ export function getChineseCharList(data: string) {
         if (notePositionList.find(item => item[0] < i && i < item[1])) continue;
       }
       // 向前找
-      while (!endChars.includes(data[begin])) {
+      while (!endChars.includes(documentText[begin])) {
         begin--;
       }
       // 向后找
-      while (!endChars.includes(data[end])) {
+      while (!endChars.includes(documentText[end])) {
         end++;
       }
       // 多行符需要特别处理
-      if (data[begin] === '`') {
-        while (data[end] !== '`') {
+      if (documentText[begin] === '`') {
+        while (documentText[end] !== '`') {
           end++;
         }
       }
-      if (data[end] === '`') {
-        while (data[begin] !== '`') {
+      if (documentText[end] === '`') {
+        while (documentText[begin] !== '`') {
           begin--;
         }
       }
 
       nextIndex = end;
-      key = data.substring(begin + 1, end);
-      key = data[begin] === '`' ? key : key.trim();
+      key = documentText.substring(begin + 1, end);
+      key = documentText[begin] === '`' ? key : key.trim();
       // 判断是否不含特殊字符
       if (excludes.some(k => key.includes(k))) continue;
 
-      let current = { matchedText: key, i18nValue: key };
-      if (['"', "'", '`'].includes(data[begin]) && data[begin] === data[end]) {
-        current = { matchedText: `${data[begin]}${key}${data[end]}`, i18nValue: key };
+      const current = {
+        matchedText: key,
+        i18nValue: key,
+        range: new Range(document.positionAt(begin), document.positionAt(end))
+      };
+      if (['"', "'", '`'].includes(documentText[begin]) && documentText[begin] === documentText[end]) {
+        current.matchedText = `${documentText[begin]}${key}${documentText[end]}`;
       }
 
       // 检查是否在JSX表达式中
       try {
-        const AST = getAST(data);
+        const AST = getAST(documentText);
 
         traverse(AST, {
           JSXText(path) {
@@ -144,7 +150,8 @@ export function getChineseCharList(data: string) {
               // 获取完整的JSX文本内容
               const fullText = node.value.trim();
               if (fullText !== key) {
-                current = { matchedText: fullText, i18nValue: fullText };
+                current.matchedText = fullText;
+                current.i18nValue = fullText;
               }
             }
           },
@@ -206,78 +213,89 @@ export const convert2pinyin = (str: string, opt: Convert2pinyinOpt) => {
   return str;
 }
 
-export const isInJsx = invokeWithErrorHandler((codeText: string, text: string) => {
-  const AST = getAST(codeText);
+export const isInJsxElement = (documentText: string, start: number, end: number) => {
+  const AST = getAST(documentText);
 
-  let isInJsx = false;
-  const textStart = codeText.indexOf(text);
-
+  let inJsx = false;
+  const checkJSXText = (node: JSXText) => {
+    return !isNil(node.start) && !isNil(node.end) && start >= node.start && end <= node.end;
+  }
   const checkJSXChildren = (node: any) => {
-    const { start, end } = node;
-    if (!isNil(start) && !isNil(end) && textStart >= start && textStart + text.length <= end) {
-      const jsxChildren = node.children || [];
-      for (const child of jsxChildren) {
-        if (child.type === 'JSXText') {
-          const childStart = child.start;
-          const childEnd = child.end;
-          if (!isNil(childStart) && !isNil(childEnd) &&
-            textStart >= childStart && textStart + text.length <= childEnd) {
-            return true;
-          }
-        }
-      }
+    const nodeStart = node?.openingElement?.end || node?.openingFragment?.end;
+    const nodeEnd = node?.closingElement?.start || node?.closingFragment?.start;
+    if (isNil(nodeStart) || isNil(nodeEnd)) return false;
+
+    if (start >= nodeStart && end <= nodeEnd) {
+      // 兼容 <div></div> 这种空标签
+      if (node.children.length === 0) return true;
+      for (const child of node.children) {
+        if (child.type === 'JSXText') return checkJSXText(child);
+      } 
     }
+
     return false;
   };
 
   traverse(AST, {
-    JSXFragment(path) {
-      if (checkJSXChildren(path.node)) {
-        isInJsx = true;
+    JSXFragment({ node }) {
+      if (checkJSXChildren(node)) {
+        inJsx = true;
         return;
       }
     },
-    JSXElement(path) {
-      if (checkJSXChildren(path.node)) {
-        isInJsx = true;
+    JSXElement({ node }) {
+      if (checkJSXChildren(node)) {
+        inJsx = true;
+        return;
+      }
+    },
+    JSXText({ node }) {
+      if (checkJSXText(node)) {
+        inJsx = true;
         return;
       }
     }
   });
 
-  return isInJsx;
-}, console.error);
+  return inJsx;
+};
 
-export const isInJsxAttribute = invokeWithErrorHandler((codeText: string, text: string) => {
-  const AST = getAST(codeText);
+export const isInJsxAttribute = (documentText: string, start: number, end: number) => {
+  const AST = getAST(documentText);
 
-  let isInJsx = false;
-  const textStart = codeText.indexOf(text);
+  let inJsxAttribute = false;
+  const checkJSXAttribute = (node: JSXElement) => {
+    if (isNil(node.start) || isNil(node.end)) return false;
+
+    if (start >= node.start && end <= node.end) {
+      const { attributes } = node.openingElement;
+      if (!attributes) return false;
+      for (const attr of attributes) {
+        if (attr.type !== 'JSXAttribute' || !attr.value || attr.value.type !== 'StringLiteral') continue;
+        if (isNil(attr.value.start) || isNil(attr.value.end)) continue;
+        if (start >= attr.value.start && end <= attr.value.end) return true;
+      }
+    }
+
+    return false;
+  };
 
   traverse(AST, {
-    JSXElement(path) {
-      const { start, end } = path.node;
-      if (!isNil(start) && !isNil(end) && textStart >= start && textStart + text.length <= end) {
-        const openingElement = path.node.openingElement;
-        if (openingElement && openingElement.attributes) {
-          for (const attr of openingElement.attributes) {
-            if (attr.type === 'JSXAttribute' && attr.value && attr.value.type === 'StringLiteral') {
-              const attrStart = attr.value.start;
-              const attrEnd = attr.value.end;
-              if (!isNil(attrStart) && !isNil(attrEnd) && textStart >= attrStart && textStart + text.length <= attrEnd) {
-                isInJsx = true;
-                break;
-              }
-            }
-          }
-        }
+    JSXElement({ node }) {
+      if (checkJSXAttribute(node)) {
+        inJsxAttribute = true;
+        return;
       }
     }
   });
 
-  return isInJsx;
-}, console.error);
+  return inJsxAttribute;
+};
 
+export let prevChangedFileUris: Uri[] = [];
+export const setPrevChangedFileUris = (uris: Uri[]) => {
+  prevChangedFileUris = uris;
+}
 export const writeFileByEditor = async (fileUri: Uri, content: string) => {
   const document = await workspace.openTextDocument(fileUri);
   const workspaceEdit = new WorkspaceEdit();
@@ -285,6 +303,8 @@ export const writeFileByEditor = async (fileUri: Uri, content: string) => {
 
   workspaceEdit.replace(fileUri, fullRange, content);
   await workspace.applyEdit(workspaceEdit);
+  await document.save();
+  setPrevChangedFileUris([fileUri]);
   return true;
 };
 
@@ -369,32 +389,4 @@ export const getI18nGroups = (context: ExtensionContext): I18nGroup[] => {
   return Object.entries(context.globalState.get<I18nMap>(I18N_MAP_KEY) || {})
     .map(([filePath, groups]) => groups.map((item) => ({ filePath, ...item })))
     .flat();
-}
-
-const position2Offset = (text: string, position: Position) => {
-  return text.slice(0, position.character).length;
-}
-
-export const replaceByRanges = (text: string, ranges: { range: Range, replaceText: string }[]) => {
-  let result = text;
-  let totalOffset = 0; // 累计偏移量
-
-  for (const { range, replaceText } of ranges) {
-    // 调整位置：原位置 + 当前总偏移量
-    const adjustedStart = position2Offset(text, range.start) + totalOffset;
-    const adjustedEnd = position2Offset(text, range.end) + totalOffset;
-
-    // 计算本次替换导致的偏移变化
-    const originalLength = range.end.character - range.start.character;
-    const newLength = replaceText.length;
-    const delta = newLength - originalLength;
-
-    // 执行替换
-    result = result.slice(0, adjustedStart) + replaceText + result.slice(adjustedEnd);
-
-    // 更新总偏移量
-    totalOffset += delta;
-  }
-
-  return result;
 }

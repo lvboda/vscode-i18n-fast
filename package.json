@@ -42,6 +42,10 @@
       {
         "command": "i18n-fast.paste",
         "title": "%package.commands.paste%"
+      },
+      {
+        "command": "i18n-fast.undo",
+        "title": "%package.commands.undo%"
       }
     ],
     "configuration": {
@@ -61,32 +65,16 @@
           "default": true,
           "description": "%package.configuration.autoMatchChinese%"
         },
-        "i18n-fast.matchExpr": {
+        "i18n-fast.conflictPolicy": {
           "type": "string",
-          "default": "[/(?:'|\"|`)#\\((.+?)\\)(?:'|\"|`)/gs, /#\\((.+?)\\)/gs].map((regex) => _.flatMap([...documentText.matchAll(regex)]));"
-        },
-        "i18n-fast.customParamExpr": {
-          "type": "string",
-          "default": "[matchedGroup[1].split('?i')[0], qs.parse(matchedGroup[1].split('?i')?.[1] || '')];"
-        },
-        "i18n-fast.i18nKeyExpr": {
-          "type": "string",
-          "default": "`${convert2pinyin(realText, { separator: '-', limit: 50 })}.${crypto.MD5(realText).toString(crypto.enc.Hex)}`"
-        },
-        "i18n-fast.i18nValueExpr": {
-          "type": "string"
-        },
-        "i18n-fast.codeOverwriteExpr": {
-          "type": "string",
-          "default": "_.isNil(customParam?.c) ? `${customParam?.isInJsx ? '{' : '' }formatMessage({ id: '${i18nKey}' }${customParam?.v ? `, { ${customParam.v} }` : ''})${customParam?.isInJsx ? '}' : ''}` : `<FormattedMessage id='${i18nKey}'${customParam?.v ? ` values={{ ${customParam.v} }}` : ''}/>`"
-        },
-        "i18n-fast.i18nFilePathExpr": {
-          "type": "string",
-          "default": "fg.sync('app/share/locales/zh-CN/ads.js', { cwd: workspace.getWorkspaceFolder(editor.document.uri)?.uri.fsPath })"
-        },
-        "i18n-fast.i18nFileOverwriteExpr": {
-          "type": "string",
-          "default": "123"
+          "default": "smart",
+          "enum": [
+            "reuse",
+            "ignore",
+            "picker",
+            "smart"
+          ],
+          "description": "%package.configuration.conflictPolicy%"
         }
       }
     }

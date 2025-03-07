@@ -4,16 +4,18 @@ import { PLUGIN_NAME } from "./constant";
 
 import type { WorkspaceConfiguration } from "vscode";
 
-const defaultConfig = {
+type Config = {
+    hookFilePattern: string;
+    i18nFilePattern: string;
+    autoMatchChinese: boolean;
+    conflictPolicy: 'reuse' | 'ignore' | 'picker' | 'smart';
+}
+
+const defaultConfig: Config = {
     hookFilePattern: '**/test.i18n-fast.hook.js',
     i18nFilePattern: '**/locales/**/*.js',
     autoMatchChinese: true,
-    matchExpr: '',
-    customParamExpr: '',
-    i18nKeyExpr: '',
-    codeOverwriteExpr: '',
-    i18nFilePathExpr: '',
-    i18nFileOverwriteExpr: '',
+    conflictPolicy: 'smart',
 };
 
 function genConfig(config: WorkspaceConfiguration) {

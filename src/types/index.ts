@@ -2,15 +2,16 @@ import type { Range } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 
 export type ConvertGroup = {
-    matchedText: string;
     i18nValue: string;
-    range?: Range;
+    matchedText?: string; 
+    range?: Range; 
     i18nKey?: string;
     customParam?: Record<string, any>;
     overwriteText?: string;
     documentText?: string;
     editingDocumentText?: string;
-}
+    isNew?: boolean;
+};
 
 export type I18nGroup = {
     key: string;

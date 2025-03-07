@@ -11,27 +11,32 @@ module.exports = {
             return { matchedText, i18nValue };
           }).filter(Boolean);
     },
-    convert: async ({ convertGroup, isInJsx, isInJsxAttribute, qs, convert2pinyin, crypto }) => {
-        // 解析自定义参数
-        const [i18nValue = convertGroup.i18nValue, customParamStr = ''] = convertGroup.i18nValue.split('?i');
-        const customParam = qs.parse(customParamStr) || {};
+    convert: async ({ convertGroups, document, safeCall, isInJsxElement, isInJsxAttribute, qs, convert2pinyin, crypto }) => {
+        const documentText = document.getText();
+        return convertGroups.map((group) => {
+            // 解析自定义参数
+            const [i18nValue = group.i18nValue, customParamStr = ''] = group.i18nValue.split('?i');
+            const customParam = qs.parse(customParamStr) || {};
 
-        // 生成 i18nKey
-        const i18nKey = `${convert2pinyin(i18nValue, { separator: '-', limit: 50 })}.${crypto.MD5(i18nValue).toString(crypto.enc.Hex)}`;
+            // 生成 i18nKey
+            const i18nKey = group.i18nKey || `${convert2pinyin(i18nValue, { separator: '-', limit: 50 })}.${crypto.MD5(i18nValue).toString(crypto.enc.Hex)}`;
 
-        // 生成 overwriteText
-        const inJsxOrJsxAttribute = isInJsx(convertGroup.editingDocumentText, convertGroup.matchedText) || isInJsxAttribute(convertGroup.editingDocumentText, convertGroup.matchedText);
-        const overwriteText = `${inJsxOrJsxAttribute ? '{' : '' }formatMessage({ id: '${i18nKey}' }${customParam.v ? `, { ${customParam.v} }` : ''})${inJsxOrJsxAttribute ? '}' : ''}`;
+            // 生成 overwriteText
+            const startIndex = document.offsetAt(group.range.start);
+            const endIndex = document.offsetAt(group.range.end);
+            const inJsxOrJsxAttribute = safeCall(isInJsxElement, [documentText, startIndex, endIndex]) || safeCall(isInJsxAttribute, [documentText, startIndex, endIndex]);
+            const overwriteText = `${inJsxOrJsxAttribute ? '{' : '' }formatMessage({ id: '${i18nKey}' }${customParam.v ? `, { ${customParam.v} }` : ''})${inJsxOrJsxAttribute ? '}' : ''}`;
 
-        return {
-            ...convertGroup,
-            i18nKey,
-            i18nValue,
-            overwriteText,
-            customParam,
-        };
+            return {
+                ...group,
+                i18nKey,
+                i18nValue,
+                overwriteText,
+                customParam,
+            };
+        });
     },
-    write: async ({ convertGroups, editedDocumentText, documentUri, workspace, writeFileByEditor }) => {
+    write: async ({ convertGroups, workspace, writeFileByEditor }) => {
         const [i18nFileUri] = await workspace.findFiles('**/locales/zh-CN/index.js');
         if (!i18nFileUri) return false;
 
@@ -41,14 +46,13 @@ module.exports = {
         if (!!i18nFileContent && !regex.test(i18nFileContent)) throw new Error('i18n file content is invalid');
   
         const obj = new Function(`return ${i18nFileContent.match(regex)?.[1] || '{}'}`)();
-        convertGroups.forEach(({ i18nKey, i18nValue }) => {
-            if (i18nKey && i18nValue) obj[i18nKey] = i18nValue;
+        convertGroups.forEach(({ i18nKey, i18nValue, isNew }) => {
+            if (i18nKey && i18nValue && isNew) obj[i18nKey] = i18nValue;
         });
 
-        await Promise.all([
-            writeFileByEditor(i18nFileUri, `module.exports = ${JSON.stringify(obj, null, 2)};`),
-            writeFileByEditor(documentUri, editedDocumentText),
-        ]);
+        if (Object.keys(obj).length) {
+            await writeFileByEditor(i18nFileUri, `module.exports = ${JSON.stringify(obj, null, 2)};`);
+        }
 
         return true;
     },

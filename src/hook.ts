@@ -6,9 +6,9 @@ import * as crypto from 'crypto-js';
 
 import { showMessage } from './tips';
 import { getConfig } from './config';
-import { convert2pinyin, isInJsx, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall } from './utils';
+import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall } from './utils';
 
-import type { Uri } from 'vscode'
+import type { TextDocument, Uri } from 'vscode'
 import type { ConvertGroup, I18nGroup } from './types';
 
 class Hook {
@@ -46,7 +46,7 @@ class Hook {
             _: lodash,
             workspace,
             convert2pinyin,
-            isInJsx,
+            isInJsxElement,
             isInJsxAttribute,
             writeFileByEditor,
             getICUMessageFormatAST,
@@ -90,11 +90,11 @@ class Hook {
         return await this.call<ConvertGroup[]>('match', context, []);
     }
 
-    async convert(context: { convertGroup: ConvertGroup }) {
-        return await this.call<ConvertGroup>('convert', context, context.convertGroup);
+    async convert(context: { convertGroups: ConvertGroup[], document: TextDocument }) {
+        return await this.call<ConvertGroup[]>('convert', context, context.convertGroups);
     }
 
-    async write(context: { convertGroups: ConvertGroup[], editedDocumentText: string, documentUri: Uri }) {
+    async write(context: { convertGroups: ConvertGroup[], document: TextDocument }) {
         return await this.call<boolean>('write', context, false);
     }
 
