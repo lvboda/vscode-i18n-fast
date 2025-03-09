@@ -4,6 +4,6 @@ module.exports = {
     'lvboda': '罗伯特',
     'close.test': '关闭测试',
     'close.test1': '关闭测试',
-    'close.test2': '关闭测试'
+    'close.test2': '关闭测试',
 };
   

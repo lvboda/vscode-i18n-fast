@@ -1,29 +1,30 @@
 import { EventEmitter, Range, workspace, Position, Uri } from 'vscode';
-import { max } from 'lodash';
+import { max, isString } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
-import { getConfig } from './config';
 import { getI18nGroups } from './utils';
 
+
 import type { TextDocumentContentProvider, DefinitionProvider, TextDocument, ExtensionContext } from 'vscode';
+import type Hook from './hook';
 
 export class I18nJumpProvider implements DefinitionProvider {
     static instance: I18nJumpProvider;
 
-    static getInstance(context: ExtensionContext) {
+    static getInstance(context: ExtensionContext, hook: Hook) {
         if (!I18nJumpProvider.instance) {
-            I18nJumpProvider.instance = new I18nJumpProvider(context);
+            I18nJumpProvider.instance = new I18nJumpProvider(context, hook);
         }
         return I18nJumpProvider.instance;
     }
 
-    constructor(private context: ExtensionContext) {}
+    constructor(private context: ExtensionContext, private hook: Hook) {}
 
-    provideDefinition(document: TextDocument, position: Position) {
+    async provideDefinition(document: TextDocument, position: Position) {
         // 排除掉 i18n 文件
-        const { i18nFilePattern } = getConfig();
-        if (!workspace.getWorkspaceFolder(document.uri) || !!match([workspace.asRelativePath(document.uri, false)], i18nFilePattern).length) return;
+        const i18nFilePattern = await this.hook.i18nFilePattern();
+        if (!workspace.getWorkspaceFolder(document.uri) || !!match([workspace.asRelativePath(document.uri, false)], isString(i18nFilePattern) ? i18nFilePattern : i18nFilePattern.pattern).length) return;
 
         const i18nGroups = getI18nGroups(this.context);
         const [matched] = (new AhoCorasick(i18nGroups.map(({ key }) => key)))

@@ -6,11 +6,11 @@ export type ConvertGroup = {
     matchedText?: string; 
     range?: Range; 
     i18nKey?: string;
-    customParam?: Record<string, any>;
+    params?: Record<string, any>;
     overwriteText?: string;
     documentText?: string;
     editingDocumentText?: string;
-    isNew?: boolean;
+    type?: 'ready' | 'new';
 };
 
 export type I18nGroup = {

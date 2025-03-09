@@ -6,7 +6,7 @@ function genMessage(message: string) {
     return `[ ${PLUGIN_NAME} ] ${message}`;
 }
 
-const globalStatusBar = window.createStatusBarItem();
+export const globalStatusBar = window.createStatusBarItem();
 
 export function showStatusBar(message: string, tooltip?: string) {
     globalStatusBar.tooltip = new MarkdownString(tooltip);

@@ -1,9 +1,8 @@
 import { window, workspace, Range, Uri, MarkdownString, env, commands } from 'vscode';
-import { isNil, max, flatMapDeep, trim } from 'lodash';
+import { isNil, isString, max, flatMapDeep } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
-import { getConfig } from './config';
 import { isRangeIntersect, AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, getI18nGroups, matchChinese, prevChangedFileUris, setPrevChangedFileUris } from './utils';
 import { MemoryDocumentProvider } from './provider';
 import { asyncInvokeWithErrorHandler } from './error';
@@ -48,8 +47,6 @@ const getI18nKeyByPicker = async (matchedGroups: I18nGroup[]) => {
 
 export const createOnCommandConvertHandler = (context: ExtensionContext, hook: Hook) => {
     const handler = async (groups?: ConvertGroup[]) => {
-        const { autoMatchChinese, conflictPolicy } = getConfig();
-
         const editor = window.activeTextEditor;
 
         if (!editor) return;
@@ -62,7 +59,7 @@ export const createOnCommandConvertHandler = (context: ExtensionContext, hook: H
         if (!convertGroups.length) {
             convertGroups.push(...await hook.match({ documentText }));
 
-            if (autoMatchChinese) {
+            if (await hook.autoMatchChinese()) {
                 convertGroups.push(...matchChinese(editor.document));
             }
         }
@@ -70,7 +67,7 @@ export const createOnCommandConvertHandler = (context: ExtensionContext, hook: H
         const i18nGroups = getI18nGroups(context);
         const processedRanges: Range[] = [];
         convertGroups = await Promise.all(convertGroups.map(async (group) => {
-            group.isNew = true;
+            group.type = 'new';
             // 匹配 range
             if (!group.range && group.matchedText) {
                 let index = documentText.indexOf(group.matchedText);
@@ -95,12 +92,13 @@ export const createOnCommandConvertHandler = (context: ExtensionContext, hook: H
             const matchedGroups = i18nGroups.filter(({ value }) => value === group.i18nValue);
             if (!group.range || !matchedGroups.length) return group;
 
+            const conflictPolicy = await hook.conflictPolicy();
             switch(conflictPolicy) {
                 case 'ignore':
                     return group;
                 case 'picker': 
                 case 'smart':
-                    if (matchedGroups.length === 1 && conflictPolicy === 'smart') return { ...group, i18nKey: matchedGroups[0].key, isNew: false };
+                    if (matchedGroups.length === 1 && conflictPolicy === 'smart') return { ...group, i18nKey: matchedGroups[0].key, type: 'ready' };
 
                     editor.revealRange(group.range);
                     editor.setDecorations(i18nKeyConflictDecorationType, [{
@@ -110,27 +108,16 @@ export const createOnCommandConvertHandler = (context: ExtensionContext, hook: H
                     }]);
                     const i18nKey = await getI18nKeyByPicker(matchedGroups);
                     editor.setDecorations(i18nKeyConflictDecorationType, []);
-                    return { ...group, i18nKey: i18nKey || group.i18nKey, isNew: !i18nKey };
+                    return { ...group, i18nKey: i18nKey || group.i18nKey, type: !!i18nKey ? 'ready' : 'new' };
                 case 'reuse':
                 default:
-                    return { ...group, i18nKey: matchedGroups[0].key, isNew: false };
+                    return { ...group, i18nKey: matchedGroups[0].key, type: 'ready' };
             }
         }));
 
         convertGroups = await hook.convert({ convertGroups, document: editor.document });
 
-        const ok = await hook.write({ convertGroups, document: editor.document });
-
-        if (ok) {
-            await editor.edit((editBuilder) => {
-                convertGroups.forEach(({ range, overwriteText }) => {
-                    if (!range || !overwriteText) return;
-                    editBuilder.replace(range, overwriteText);
-                });
-            });
-
-            await editor.document.save();
-        }
+        await hook.write({ convertGroups, editor, document: editor.document });
     };
 
     return asyncInvokeWithErrorHandler(handler);
@@ -172,11 +159,11 @@ export const createOnCommandUndoHandler = (context: ExtensionContext, hook: Hook
 
 export const createOnDidChangeAddDecorationHandler = (context: ExtensionContext, hook: Hook) => {
     context.subscriptions.push(i18nKeyDecorationType);
-    const handler = (editor?: TextEditor) => {
-        const { i18nFilePattern } = getConfig();
+    const handler = async (editor?: TextEditor) => {
         if (!editor?.document) return;
         // 排除掉 i18n 文件
-        if (!workspace.getWorkspaceFolder(editor.document.uri) || !!match([workspace.asRelativePath(editor.document.uri, false)], i18nFilePattern).length) return;
+        const i18nFilePattern = await hook.i18nFilePattern();
+        if (!workspace.getWorkspaceFolder(editor.document.uri) || !!match([workspace.asRelativePath(editor.document.uri, false)], isString(i18nFilePattern) ? i18nFilePattern : i18nFilePattern.pattern).length) return;
 
         const i18nGroups = getI18nGroups(context);
         const processedRanges: Range[] = [];

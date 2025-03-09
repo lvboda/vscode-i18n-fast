@@ -1,6 +1,5 @@
-import { workspace } from 'vscode';
+import { workspace, RelativePattern } from 'vscode';
 
-import { getConfig } from './config';
 import { I18N_MAP_KEY } from './constant';
 
 import type { FileSystemWatcher, GlobPattern, Uri, ExtensionContext } from "vscode";
@@ -16,8 +15,9 @@ enum WATCH_STATE {
 class Watcher {
     private watcher: FileSystemWatcher;
 
-    constructor(globPattern: GlobPattern) {
-        this.watcher = workspace.createFileSystemWatcher(globPattern);
+    constructor(globPattern: string | GlobPattern) {
+        const pattern = typeof globPattern === 'string' ? new RelativePattern(workspace.workspaceFolders?.[0] || '', globPattern) : globPattern;
+        this.watcher = workspace.createFileSystemWatcher(pattern);
     }
 
     public on(callback: (state: WATCH_STATE, uri: Uri) => void) {
@@ -32,18 +32,17 @@ class Watcher {
 }
 
 export const watchHook = async (hook: Hook) => {
-    const { hookFilePattern } = getConfig();
     // init
     await hook.load();
 
-    const watcher = new Watcher(hookFilePattern);
+    const watcher = new Watcher(await hook.hookFilePattern());
     watcher.on(() => hook.load());
 
     return watcher;
 }
 
 export const watchI18n = async (hook: Hook, { globalState }: ExtensionContext) => {
-    const { i18nFilePattern } = getConfig();
+    const i18nFilePattern = await hook.i18nFilePattern();
     // init
     const i18nFileUris = await workspace.findFiles(i18nFilePattern);
     let i18nMap = {} as I18nMap;

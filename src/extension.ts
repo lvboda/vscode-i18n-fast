@@ -5,7 +5,8 @@ import { COMMAND_CONVERT_KEY, COMMAND_PASTE_KEY, COMMAND_UNDO_KEY } from './cons
 import { createOnCommandConvertHandler, createOnCommandPasteHandler, createOnCommandUndoHandler, createOnDidChangeAddDecorationHandler } from './handler';
 import { I18nJumpProvider, MemoryDocumentProvider } from './provider';
 import Hook from './hook';
-import { watchHook, watchI18n } from './watch'
+import { watchHook, watchI18n } from './watch';
+import { globalStatusBar } from './tips';
 
 import type { ExtensionContext } from 'vscode';
 
@@ -18,7 +19,7 @@ export async function activate(context: ExtensionContext) {
 	onDidChangeAddDecorationHandler(window.activeTextEditor);
 	const debouncedOnDidChangeAddDecorationHandler = debounce(onDidChangeAddDecorationHandler, 300);
 
-	const i18nJumpProvider = I18nJumpProvider.getInstance(context);
+	const i18nJumpProvider = I18nJumpProvider.getInstance(context, hook);
 	const memoryDocumentProvider = MemoryDocumentProvider.getInstance();
 
 	context.subscriptions.push(
@@ -32,6 +33,7 @@ export async function activate(context: ExtensionContext) {
 		window.onDidChangeTextEditorVisibleRanges(() => debouncedOnDidChangeAddDecorationHandler(window.activeTextEditor)),
 		hookWatcher,
 		i18nWatcher,
+		globalStatusBar,
 	);
 }
 

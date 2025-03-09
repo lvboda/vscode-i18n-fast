@@ -296,12 +296,18 @@ export let prevChangedFileUris: Uri[] = [];
 export const setPrevChangedFileUris = (uris: Uri[]) => {
   prevChangedFileUris = uris;
 }
-export const writeFileByEditor = async (fileUri: Uri, content: string) => {
+
+export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[])) => {
+  fileUri = typeof fileUri === 'string' ? Uri.file(fileUri) : fileUri;
   const document = await workspace.openTextDocument(fileUri);
   const workspaceEdit = new WorkspaceEdit();
-  const fullRange = new Range(document.positionAt(0), document.positionAt(document.getText().length));
 
-  workspaceEdit.replace(fileUri, fullRange, content);
+  if (Array.isArray(contentOrList)) {
+    contentOrList.forEach(({ range, content }) => workspaceEdit.replace(fileUri, range, content));
+  } else {
+    workspaceEdit.replace(fileUri, new Range(document.positionAt(0), document.positionAt(document.getText().length)), contentOrList);
+  }
+
   await workspace.applyEdit(workspaceEdit);
   await document.save();
   setPrevChangedFileUris([fileUri]);
@@ -387,6 +393,6 @@ export const truncateByDisplayWidth = (text: string, maxWidth = 60, ellipsis = '
 
 export const getI18nGroups = (context: ExtensionContext): I18nGroup[] => {
   return Object.entries(context.globalState.get<I18nMap>(I18N_MAP_KEY) || {})
-    .map(([filePath, groups]) => groups.map((item) => ({ filePath, ...item })))
+    .map(([filePath, groups]) => groups?.map((item) => ({ filePath, ...item })) || [])
     .flat();
 }
