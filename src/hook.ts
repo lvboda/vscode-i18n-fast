@@ -1,52 +1,27 @@
 import * as vscode from 'vscode';
 import * as lodash from 'lodash';
 import * as qs from 'qs';
-import * as safeEval from 'safe-eval';
 import * as crypto from 'crypto-js';
 import * as uuid from 'uuid';
 import * as prettier from 'prettier';
+import * as babelParser from '@babel/parser';
+import traverse from '@babel/traverse';
 
-import { showMessage, showStatusBar, hideStatusBar } from './tips';
-import { PLUGIN_NAME } from './constant';
-import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall } from './utils';
+import { getConfig } from './config';
+import { showMessage } from './tips';
+import { FILE_IGNORE } from './constant';
+import Watcher, { WATCH_STATE } from './watcher';
+import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
 
-import type { TextDocument, Uri, TextEditor, GlobPattern, WorkspaceConfiguration } from 'vscode'
+import type { TextDocument, Uri, TextEditor } from 'vscode'
 import type { ConvertGroup, I18nGroup } from './types';
+import type I18n from './i18n';
 
-type Config = {
-    hookFilePattern: string;
-    i18nFilePattern: string;
-    autoMatchChinese: boolean;
-    conflictPolicy: 'reuse' | 'ignore' | 'picker' | 'smart';
-    match: string;
-    convert: string;
-    write: string;
-    i18nGroups: string;
-}
-
-const defaultConfig: Config = {
-    hookFilePattern: 'i18n-fast.hook.js',
-    i18nFilePattern: 'locales/zh-CN/**/*.js',
-    autoMatchChinese: true,
-    conflictPolicy: 'smart',
-    match: '',
-    convert: '',
-    write: '',
-    i18nGroups: '',
-};
-
-const genConfig = (config: WorkspaceConfiguration) => {
-    return Object.entries(defaultConfig).reduce((pre, [key]) => {
-        return { ...pre, [key]: config.get(key) };
-    }, defaultConfig);
-}
-
-const getConfig = () => {
-    return genConfig(vscode.workspace.getConfiguration(PLUGIN_NAME));
-}
+type WorkspaceHook = Map<string, Record<string, (context: Record<string, any>) => any>>;
 
 class Hook {
-    private hook = {} as Record<string, (context: Record<string, any>) => any>;
+    private hookMap: WorkspaceHook = new Map();
+    private watcherMap: Map<string, Watcher> = new Map();
     private loading = false;
     private static instance: Hook;
 
@@ -55,17 +30,62 @@ class Hook {
         return Hook.instance;
     }
 
-    async load() {
+    private disposeMap(workspaceKey: string) {
+        this.hookMap.delete(workspaceKey);
+    }
+
+    private disposeWatcher(workspaceKey: string) {
+        const watcher = this.watcherMap.get(workspaceKey);
+        if (!watcher) return;
+        watcher.dispose();
+        this.watcherMap.delete(workspaceKey);
+    }
+
+    dispose(workspaceKey: string) {
+        this.disposeMap(workspaceKey);
+        this.disposeWatcher(workspaceKey);
+    }
+
+    setHook(workspaceKey: string, path: string) {
+        // 删除 require 缓存
+        delete require.cache[require.resolve(path)];
+        this.hookMap.set(workspaceKey, require(path));
+    }
+
+    async init(i18n: I18n) {
+        return await this.reload(i18n, getConfig().hookFilePattern);
+    }
+
+    async reload(i18n: I18n, i18nFilePattern?: string) {
+        const workspaceKey = getWorkspaceKey();
+        if (!workspaceKey) return;
+        this.dispose(workspaceKey);
+        if (!i18nFilePattern) return;
+
         this.loading = true;
         try {
-            const [file] = await vscode.workspace.findFiles(await this.hookFilePattern(), '{**/node_modules/**, **/.git/**, **/@types/**, **/.vscode/**, **.d.ts, **/.history/**}');
-            if (!file) return;
+            const [file] = await vscode.workspace.findFiles(i18nFilePattern, FILE_IGNORE);
+            if (!file) {
+                this.hookMap.delete(workspaceKey);
+                return;
+            }
     
-            // 删除 require 缓存
-            delete require.cache[require.resolve(file.fsPath)];
-            this.hook = require(file.fsPath);
-        } catch(error) {
-            showMessage('warn', `<loadHook error> ${error}`);
+            this.setHook(workspaceKey, file.fsPath);
+
+            this.watcherMap.set(workspaceKey, new Watcher(i18nFilePattern).on(async (state, uri) => {
+                switch (state) {
+                    case WATCH_STATE.CHANGE:
+                        this.setHook(workspaceKey, uri.fsPath);
+                        break;
+                    case WATCH_STATE.DELETE:
+                        this.hookMap.delete(workspaceKey);
+                        break;
+                }
+
+                await i18n.reload(this, i18nFilePattern);
+            }));
+        } catch(error: any) {
+            showMessage('warn', `<loadHook error> ${error?.stack}`);
         } finally {
             this.loading = false;
         }
@@ -81,6 +101,7 @@ class Hook {
             vscode,
             prettier,
             hook: this,
+            babel: { ...babelParser, traverse },
             convert2pinyin,
             isInJsxElement,
             isInJsxAttribute,
@@ -88,26 +109,20 @@ class Hook {
             getICUMessageFormatAST,
             safeCall,
             asyncSafeCall,
-            showStatusBar,
-            hideStatusBar,
-        }
-    }
-
-    private callConfig<T = any,>(configName: string, context: Record<string, any>, defaultResult: T): T {
-        try {
-            const config = getConfig();
-            return safeEval<T>(config[configName as keyof typeof config] as string, this.genContext(context));
-        } catch (error) {
-            showMessage('warn', `<callConfig ${configName} error, please check config> ${error}`);
-            return defaultResult;
+            getConfig,
+            setLoading,
         }
     }
 
     private async callHook<T = any>(hookName: string, context: Record<string, any>, defaultResult: T): Promise<T> {
         try {
-            return await this.hook[hookName](this.genContext(context));
-        } catch (error) {
-            showMessage('warn', `<call ${hookName} hook error, please check hook> ${error}`);
+            const workspaceKey = getWorkspaceKey();
+            if (!workspaceKey) return defaultResult;
+            const hook = this.hookMap.get(workspaceKey);
+            if (!hook || !lodash.isFunction(hook[hookName])) return defaultResult;
+            return await hook[hookName](this.genContext(context));
+        } catch (error: any) {
+            showMessage('warn', `<call ${hookName} hook error, please check hook> ${error?.stack}`);
             return defaultResult;
         }
     }
@@ -117,32 +132,10 @@ class Hook {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
-        if (this.hook[name]) {
-            if (!lodash.isFunction(this.hook[name])) return this.hook[name];
-
-            return await this.callHook(name, context, defaultResult);
-        }
-
-        return this.callConfig(name, context, defaultResult);
+        return await this.callHook(name, context, defaultResult);
     }
 
-    async hookFilePattern() {
-        return await this.call<string | GlobPattern>('hookFilePattern', {}, getConfig().hookFilePattern);
-    }
-
-    async i18nFilePattern() {
-        return await this.call<string | GlobPattern>('i18nFilePattern', {}, getConfig().i18nFilePattern);
-    }
-
-    async autoMatchChinese() {
-        return await this.call<boolean>('autoMatchChinese', {}, getConfig().autoMatchChinese);
-    }
-
-    async conflictPolicy() {
-        return await this.call<string>('conflictPolicy', {}, getConfig().conflictPolicy);
-    }
-
-    async match(context: { documentText: string }) {
+    async match(context: { document: TextDocument }) {
         return await this.call<ConvertGroup[]>('match', context, []);
     }
 
@@ -154,8 +147,8 @@ class Hook {
         return await this.call<boolean>('write', context, false);
     }
 
-    async i18nGroups(context: { i18nFileUri: Uri }) {
-        return await this.call<I18nGroup[]>('i18nGroups', context, []);
+    async i18nGroup(context: { i18nFileUri: Uri }) {
+        return await this.call<I18nGroup[]>('i18nGroup', context, []);
     }
 }
 

@@ -20,5 +20,3 @@ export type I18nGroup = {
     filePath?: string;
     line?: number;
 }
-
-export type I18nMap = Record<string, I18nGroup[]>;

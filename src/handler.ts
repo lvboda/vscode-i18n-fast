@@ -1,18 +1,21 @@
 import { window, workspace, Range, Uri, MarkdownString, env, commands } from 'vscode';
-import { isNil, isString, max, flatMapDeep } from 'lodash';
+import { isNil, max, flatMapDeep, countBy } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
-import { isRangeIntersect, AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, getI18nGroups, matchChinese, prevChangedFileUris, setPrevChangedFileUris } from './utils';
-import { MemoryDocumentProvider } from './provider';
+import localize from './localize';
+import { showMessage } from './tips';
+import { getConfig } from './config';
 import { asyncInvokeWithErrorHandler } from './error';
 import { COMMAND_CONVERT_KEY, PLUGIN_NAME } from './constant';
+import { isRangeIntersect, AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading } from './utils';
 
-import type { TextEditor, ExtensionContext, DecorationOptions } from 'vscode';
-import type Hook from './hook';
+import type { TextEditor, DecorationOptions } from 'vscode';
 import type { ConvertGroup, I18nGroup } from './types';
+import type Hook from './hook';
+import type I18n from './i18n';
 
-const i18nKeyConflictDecorationType = window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 0, 0, 0.3)' });
+const i18nKeyConflictDecorationType = window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 0, 0, 0.5)' });
 const i18nKeyDecorationType = window.createTextEditorDecorationType({
     light: {
         after: {
@@ -33,11 +36,11 @@ const i18nKeyDecorationType = window.createTextEditorDecorationType({
 const IGNORE_KEY = 'IGNORE';
 const getI18nKeyByPicker = async (matchedGroups: I18nGroup[]) => {
     const res = await window.showQuickPick([...matchedGroups.map(({ key, filePath, line }) => ({
-        key: key,
-        label: `使用 ${key}`,
+        key,
+        label: key,
         description: filePath ? `${workspace.asRelativePath(filePath, false)}${isNil(line) ? '' : `:${line}`}` : ''
-    })), { key: IGNORE_KEY, label: '忽略' }], {
-        placeHolder: `存在${matchedGroups.length}个重复i18n, 请选择处理方式...`,
+    })), { key: IGNORE_KEY, label: localize("handler.ignore") }], {
+        placeHolder: localize("handler.conflict.tip", String(matchedGroups.length)),
     });
 
     if (res?.key === IGNORE_KEY) return;
@@ -45,26 +48,27 @@ const getI18nKeyByPicker = async (matchedGroups: I18nGroup[]) => {
     return res?.key;
 }
 
-export const createOnCommandConvertHandler = (context: ExtensionContext, hook: Hook) => {
+export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
     const handler = async (groups?: ConvertGroup[]) => {
         const editor = window.activeTextEditor;
 
         if (!editor) return;
+        
+        clearWriteHistory();
         const documentText = editor.document.getText();
-        const memoryDocument = await MemoryDocumentProvider.getDocument(documentText);
 
         // 参数 > 选中 > 当前文件的自定义匹配 > 当前文件的中文匹配
         let convertGroups: ConvertGroup[] = groups || editor.selections.map((selection) => ({ i18nValue: editor.document.getText(selection), range: selection }));
 
         if (!convertGroups.length) {
-            convertGroups.push(...await hook.match({ documentText }));
+            convertGroups.push(...await hook.match({ document: editor.document }));
 
-            if (await hook.autoMatchChinese()) {
+            if (getConfig().autoMatchChinese) {
                 convertGroups.push(...matchChinese(editor.document));
             }
         }
 
-        const i18nGroups = getI18nGroups(context);
+        const i18nGroups = i18n.getI18nGroups();
         const processedRanges: Range[] = [];
         convertGroups = await Promise.all(convertGroups.map(async (group) => {
             group.type = 'new';
@@ -92,7 +96,7 @@ export const createOnCommandConvertHandler = (context: ExtensionContext, hook: H
             const matchedGroups = i18nGroups.filter(({ value }) => value === group.i18nValue);
             if (!group.range || !matchedGroups.length) return group;
 
-            const conflictPolicy = await hook.conflictPolicy();
+            const { conflictPolicy } = getConfig();
             switch(conflictPolicy) {
                 case 'ignore':
                     return group;
@@ -104,7 +108,7 @@ export const createOnCommandConvertHandler = (context: ExtensionContext, hook: H
                     editor.setDecorations(i18nKeyConflictDecorationType, [{
                         range: group.range,
                         // 空范围也显示出来
-                        renderOptions: group.range.start.isEqual(group.range.end) ? { after: { contentText: '', width: '10px', height: '100%',  backgroundColor: 'rgba(255, 0, 0, 0.3)' } } : void 0
+                        renderOptions: group.range.start.isEqual(group.range.end) ? { after: { contentText: '', width: '10px', height: '100%',  backgroundColor: 'rgba(255, 0, 0, 0.5)' } } : void 0
                     }]);
                     const i18nKey = await getI18nKeyByPicker(matchedGroups);
                     editor.setDecorations(i18nKeyConflictDecorationType, []);
@@ -123,7 +127,7 @@ export const createOnCommandConvertHandler = (context: ExtensionContext, hook: H
     return asyncInvokeWithErrorHandler(handler);
 }
 
-export const createOnCommandPasteHandler = (context: ExtensionContext, hook: Hook) => {
+export const createOnCommandPasteHandler = () => {
     const handler = async () => {
         const editor = window.activeTextEditor;
         const copiedText = await env.clipboard.readText();
@@ -135,37 +139,37 @@ export const createOnCommandPasteHandler = (context: ExtensionContext, hook: Hoo
     return asyncInvokeWithErrorHandler(handler);
 }
 
-export const createOnCommandUndoHandler = (context: ExtensionContext, hook: Hook) => {
+export const createOnCommandUndoHandler = () => {
     const handler = async () => {
+        if (isLoading()) return showMessage('info', localize("handler.undo.loading.tip"));
+
         const activeUri = window.activeTextEditor?.document.uri;
 
-        for (const uri of [activeUri, ...prevChangedFileUris]) {
-            if (!uri) continue;
-            const document = await workspace.openTextDocument(uri);
+        for (const [path, writeCount] of Object.entries(countBy(getWriteHistory(), (uri) => uri.fsPath))) {
+            const document = await workspace.openTextDocument(Uri.file(path));
             await window.showTextDocument(document, { preserveFocus: true });
-            await commands.executeCommand('undo');
-            await document.save();
+            
+            for (let i = 0; i < writeCount; i++) {
+                await commands.executeCommand('undo');
+            }
         }
 
-        setPrevChangedFileUris([]);
+        clearWriteHistory();
 
-        if (activeUri) {
-            await window.showTextDocument(await workspace.openTextDocument(activeUri), { preserveFocus: true });
-        }
+        if (activeUri) await window.showTextDocument(await workspace.openTextDocument(activeUri), { preserveFocus: true });
     }
 
     return asyncInvokeWithErrorHandler(handler);
 }
 
-export const createOnDidChangeAddDecorationHandler = (context: ExtensionContext, hook: Hook) => {
-    context.subscriptions.push(i18nKeyDecorationType);
+export const createOnDidChangeAddDecorationHandler = (i18n: I18n) => {
     const handler = async (editor?: TextEditor) => {
         if (!editor?.document) return;
         // 排除掉 i18n 文件
-        const i18nFilePattern = await hook.i18nFilePattern();
-        if (!workspace.getWorkspaceFolder(editor.document.uri) || !!match([workspace.asRelativePath(editor.document.uri, false)], isString(i18nFilePattern) ? i18nFilePattern : i18nFilePattern.pattern).length) return;
+        const { i18nFilePattern } = getConfig();
+        if (!i18nFilePattern || !workspace.getWorkspaceFolder(editor.document.uri) || !!match([workspace.asRelativePath(editor.document.uri, false)], i18nFilePattern).length) return;
 
-        const i18nGroups = getI18nGroups(context);
+        const i18nGroups = i18n.getI18nGroups();
         const processedRanges: Range[] = [];
         const decorationOptions = flatMapDeep(editor.visibleRanges, ({ start, end }) => {
             // 扩容可见区域

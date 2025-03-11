@@ -14,7 +14,6 @@ const Component = (props) => {
             <div>app.test.icu</div>
             <div>app.test.icu2</div>
             <div>app.test.icu3</div>
-            {formatMessage({ id: 'app.test.testing' })}
         </div>
     )
 }

@@ -1,18 +1,17 @@
 import { workspace, WorkspaceEdit, Range, Uri } from 'vscode';
-import { concat, replace, isNil, range, uniq } from 'lodash';
+import { concat, replace, isNil } from 'lodash';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import { parse as parseMessageFormat, TYPE, isArgumentElement, isSelectElement, isPluralElement, isPoundElement, isDateElement, isNumberElement, isTimeElement } from '@formatjs/icu-messageformat-parser';
 import { isSupported, convertToPinyin } from 'tiny-pinyin';
 import stringWidth from 'string-width';
 
-import { invokeWithErrorHandler } from './error';
-import { I18N_MAP_KEY } from './constant';
+import { showStatusBar, hideStatusBar } from './tips';
 
-import type { ExtensionContext, Position, TextDocument } from 'vscode';
+import type { TextDocument } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
-import type { JSXFragment, JSXElement, JSXText } from '@babel/types';
-import type { ConvertGroup, I18nGroup, I18nMap } from './types';
+import type { JSXElement, JSXText } from '@babel/types';
+import type { ConvertGroup } from './types';
 
 const DISPLAY_ICU_TYPE_MAP = {
   [TYPE.date]: 'date',
@@ -292,12 +291,16 @@ export const isInJsxAttribute = (documentText: string, start: number, end: numbe
   return inJsxAttribute;
 };
 
-export let prevChangedFileUris: Uri[] = [];
-export const setPrevChangedFileUris = (uris: Uri[]) => {
-  prevChangedFileUris = uris;
+let writeHistory: Uri[] = [];
+export const getWriteHistory = () => writeHistory;
+export const pushWriteHistory = (uri: Uri) => {
+  writeHistory.push(uri);
+}
+export const clearWriteHistory = () => {
+  writeHistory = [];
 }
 
-export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[])) => {
+export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false) => {
   fileUri = typeof fileUri === 'string' ? Uri.file(fileUri) : fileUri;
   const document = await workspace.openTextDocument(fileUri);
   const workspaceEdit = new WorkspaceEdit();
@@ -309,8 +312,8 @@ export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: st
   }
 
   await workspace.applyEdit(workspaceEdit);
-  await document.save();
-  setPrevChangedFileUris([fileUri]);
+  if (isSave) await document.save();
+  pushWriteHistory(fileUri);
   return true;
 };
 
@@ -391,8 +394,17 @@ export const truncateByDisplayWidth = (text: string, maxWidth = 60, ellipsis = '
   return result;
 }
 
-export const getI18nGroups = (context: ExtensionContext): I18nGroup[] => {
-  return Object.entries(context.globalState.get<I18nMap>(I18N_MAP_KEY) || {})
-    .map(([filePath, groups]) => groups?.map((item) => ({ filePath, ...item })) || [])
-    .flat();
+export const getWorkspaceKey = () => {
+  return workspace.workspaceFolders?.[0]?.uri.fsPath || workspace.name;
+}
+
+let loadingCount = 0;
+export const isLoading = () => loadingCount > 0;
+export const setLoading = (isLoading: boolean, text = ' $(loading~spin) generating...') => {
+  loadingCount += isLoading ? 1 : -1;
+  if (loadingCount > 0) {
+    showStatusBar(text);
+  } else {
+    hideStatusBar();
+  }
 }

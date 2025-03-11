@@ -1,32 +1,31 @@
 import { EventEmitter, Range, workspace, Position, Uri } from 'vscode';
-import { max, isString } from 'lodash';
+import { max } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
-import { getI18nGroups } from './utils';
+import { getConfig } from './config';
 
-
-import type { TextDocumentContentProvider, DefinitionProvider, TextDocument, ExtensionContext } from 'vscode';
-import type Hook from './hook';
+import type { TextDocumentContentProvider, DefinitionProvider, TextDocument } from 'vscode';
+import type I18n from './i18n';
 
 export class I18nJumpProvider implements DefinitionProvider {
     static instance: I18nJumpProvider;
 
-    static getInstance(context: ExtensionContext, hook: Hook) {
+    static getInstance(i18n: I18n) {
         if (!I18nJumpProvider.instance) {
-            I18nJumpProvider.instance = new I18nJumpProvider(context, hook);
+            I18nJumpProvider.instance = new I18nJumpProvider(i18n);
         }
         return I18nJumpProvider.instance;
     }
 
-    constructor(private context: ExtensionContext, private hook: Hook) {}
+    constructor(private i18n: I18n) {}
 
     async provideDefinition(document: TextDocument, position: Position) {
         // 排除掉 i18n 文件
-        const i18nFilePattern = await this.hook.i18nFilePattern();
-        if (!workspace.getWorkspaceFolder(document.uri) || !!match([workspace.asRelativePath(document.uri, false)], isString(i18nFilePattern) ? i18nFilePattern : i18nFilePattern.pattern).length) return;
+        const { i18nFilePattern } = getConfig();
+        if (!workspace.getWorkspaceFolder(document.uri) || !!match([workspace.asRelativePath(document.uri, false)], i18nFilePattern).length) return;
 
-        const i18nGroups = getI18nGroups(this.context);
+        const i18nGroups = this.i18n.getI18nGroups();
         const [matched] = (new AhoCorasick(i18nGroups.map(({ key }) => key)))
             .matchInText(document.lineAt(position.line).text)
             .sort((a, b) => b.keyword.length - a.keyword.length)

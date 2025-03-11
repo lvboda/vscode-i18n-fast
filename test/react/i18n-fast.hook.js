@@ -1,13 +1,8 @@
 const genI18nKeys = require('./gen-i18n-keys');
-// i18n-fast.hook.js
-// app/share/locales/zh-CN/**/*.js
-module.exports = {
-    hookFilePattern: 'i18n-fast.hook.js',
-    i18nFilePattern: 'locales/zh-CN/**/*.js',
-    autoMatchChinese: true,
-    conflictPolicy: 'smart',
 
-    match: async ({ documentText }) => {
+module.exports = {
+    match: async ({ document }) => {
+        const documentText = document.getText();
         const matchedArr = documentText.match(/(?:(['"`])#\((.+?)\)\1|#\((.+?)\))/gs) || [];
         return matchedArr
           .map((matchedText) => {
@@ -23,7 +18,7 @@ module.exports = {
             const [i18nValue = group.i18nValue, paramsStr = ''] = group.i18nValue.split('?i');
             const params = { ...qs.parse(paramsStr) };
 
-            const i18nKey = group.type === 'new' ? `loading-${uuid.v4()}` : group.i18nKey;
+            const i18nKey = group.type === 'new' ? `i18n-fast-loading-${uuid.v4()}` : group.i18nKey;
 
             // 生成 overwriteText
             const startIndex = document.offsetAt(group.range.start);
@@ -40,40 +35,49 @@ module.exports = {
             };
         });
     },
-    write: async ({ convertGroups, hook, _, prettier, vscode, writeFileByEditor, editor, showStatusBar, hideStatusBar }) => {
-        console.log(await hook.i18nFilePattern(), 'lbd await hook.i18nFilePattern();');
+    write: async ({ convertGroups, _, prettier, vscode, writeFileByEditor, editor, setLoading, getConfig }) => {
         await writeFileByEditor(editor.document.uri, convertGroups.filter(({ range, overwriteText }) => !_.isNil(range) && !_.isNil(overwriteText)).map(({ range, overwriteText }) => ({ range, content: overwriteText })));
 
-        let needNewGroups = convertGroups.filter(({ type }) => type === 'new');
-        showStatusBar('$(loading~spin) generating...');
+        let needCreateGroups = convertGroups.filter(({ type }) => type === 'new');
+        if (needCreateGroups.length === 0) return;
+
+        setLoading(true);
         genI18nKeys(
-            needNewGroups.map(({ i18nValue }) => ({ text: i18nValue, path: editor.document.uri.fsPath })),
-            (await vscode.workspace.findFiles(await hook.i18nFilePattern())).map(({ fsPath }) => fsPath)
+            needCreateGroups.map(({ i18nValue }) => ({ text: i18nValue, path: editor.document.uri.fsPath })),
+            (await vscode.workspace.findFiles(getConfig().i18nFilePattern)).map(({ fsPath }) => fsPath)
         ).then(async (generated) => {
-            needNewGroups = needNewGroups
+            needCreateGroups = needCreateGroups
                 .map((group) => {
                     const { i18nKey, path } = generated.find(({ originalText }) => originalText === group.i18nValue) || {};
                     if (i18nKey) {
-                        const { line } = group.range.start;
-                        const keyIndex = editor.document.getText(new vscode.Range(group.range.start, new vscode.Position(line, group.range.start.character + group.overwriteText.length))).match(new RegExp(group.i18nKey))?.index;
-                        if (!_.isNil(keyIndex)) {
-                            group.overwriteI18nKeyRange = new vscode.Range(new vscode.Position(line, group.range.start.character + keyIndex), new vscode.Position(line, group.range.start.character + keyIndex + group.i18nKey.length));
-                        }
+                        group.overwriteI18nKeyRanges = [];
+                        [...editor.document.getText().matchAll(new RegExp(group.i18nKey, 'g'))].forEach((matched) => {
+                            if (!_.isNil(matched.index)) {
+                                const start = editor.document.positionAt(matched.index);
+                                const end = editor.document.positionAt(matched.index + group.i18nKey.length);
+                                group.overwriteI18nKeyRanges.push(new vscode.Range(start, end));
+                            }
+                        });
                         group.i18nKey = i18nKey;
                         group.i18nFilePath = path;
                     }
                     return group;
                 })
-                .filter(({ i18nKey, overwriteI18nKeyRange }) => !_.isNil(i18nKey) && !_.isNil(overwriteI18nKeyRange));
+                .filter(({ i18nKey, overwriteI18nKeyRanges }) => !_.isNil(i18nKey) && overwriteI18nKeyRanges.length > 0);
 
-            await writeFileByEditor(editor.document.uri, needNewGroups.map(({ i18nKey, overwriteI18nKeyRange }) => ({ range: overwriteI18nKeyRange, content: i18nKey })));
+            await writeFileByEditor(editor.document.uri, needCreateGroups.map(({ i18nKey, overwriteI18nKeyRanges }) => overwriteI18nKeyRanges.map((range) => ({ range, content: i18nKey }))).flat());
 
-            for (const [path, groups] of Object.entries(_.groupBy(needNewGroups, 'i18nFilePath'))) {
-                const i18nFileContent = Buffer.from(await vscode.workspace.fs.readFile(vscode.Uri.file(path))).toString('utf8');
+            for (const [path, groups] of Object.entries(_.groupBy(needCreateGroups, 'i18nFilePath'))) {
+                let i18nFileContent = (await vscode.workspace.fs.readFile(path ? vscode.Uri.file(path) : await vscode.workspace.findFiles('app/share/locales/zh-CN/common.js')?.[0])).toString();
                 const regex = /module\.exports\s*=\s*(\{[\s\S]*\})/;
+
                 if (!!i18nFileContent && !regex.test(i18nFileContent)) {
                     console.error(`${path} i18n file content is invalid`);
                     continue;
+                }
+
+                if (!i18nFileContent.trim()) {
+                    i18nFileContent = 'module.exports = {};';
                 }
 
                 const content = groups.reduce((pre, { i18nKey, i18nValue }) => {
@@ -83,17 +87,27 @@ module.exports = {
                     return pre;
                 }, '');
 
-                const updatedContent = i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `,${content}};`);
-                
-                await writeFileByEditor(path, await prettier.format(updatedContent, { parser: 'babel', trailingComma: 'none' }));
+                if (!content) continue;
+
+                await writeFileByEditor(path, await prettier.format(
+                  i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `,${content}};`),
+                  {
+                    parser: 'babel',
+                    trailingComma: 'none',
+                    singleQuote: true,
+                    quoteProps: 'preserve',
+                    proseWrap: 'never',
+                    printWidth: 2000
+                  }
+                ), true);
             }
         })
         .finally(() => {
-            hideStatusBar();
+            setLoading(false);
         });
     },
-    i18nGroups: async ({ i18nFileUri, vscode, getICUMessageFormatAST, safeCall }) => {
-        const lines = Buffer.from(await vscode.workspace.fs.readFile(i18nFileUri)).toString('utf8').split('\n');
+    i18nGroup: async ({ i18nFileUri, vscode, getICUMessageFormatAST, safeCall }) => {
+        const i18nFileContentLines = (await vscode.workspace.fs.readFile(i18nFileUri)).toString().split('\n');
         const matchedIndexSet = new Set();
         delete require.cache[require.resolve(i18nFileUri.fsPath)];
         return Object.entries(require(i18nFileUri.fsPath))
@@ -102,7 +116,7 @@ module.exports = {
                 key,
                 value,
                 valueAST: safeCall(getICUMessageFormatAST, [value]),
-                line: lines.findIndex((line, index) => {
+                line: i18nFileContentLines.findIndex((line, index) => {
                     if (matchedIndexSet.has(index)) return false;
                     const hasKey = new RegExp(key).test(line);
                     if (hasKey) matchedIndexSet.add(index);
@@ -111,4 +125,3 @@ module.exports = {
             }));
     }
 };
-  

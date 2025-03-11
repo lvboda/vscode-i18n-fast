@@ -43,39 +43,42 @@ const examples = [
 ];
 
 /**
- * @param {{text: string, path: string}[]} inputs 
- * @param {string[]} i18nFiles 
+ * @param {{text: string, path: string}[]} inputs
+ * @param {string[]} i18nFiles
  * @returns {Promise<{originalText: string, i18nKey: string, path: string, confidence: number}[]>}
  */
 const genI18nKey = async (inputs, i18nFiles) => {
     const systemPrompt = `You are an expert in generating i18n keys. Follow these instructions strictly:
 
-1. **Input Format**:  
-   An array of objects, each containing:  
-   - text: The original text requiring an i18n key.  
-   - path: The file path where the text appears.  
+1. **Input Format**:
+   An array of objects, each containing:
+   - text: The original text requiring an i18n key.
+   - path: The file path where the text appears.
 
-2. **Output Format**:  
-   Return a JSON object with a single key: \`result\`, each containing:  
-   - originalText: The original input text.  
-   - i18nKey: The generated i18n key.  
-   - path: The best-matching i18n file from the provided list (or undefined if no match is found).  
+2. **Output Format**:
+   Return a JSON object with a single key: \`result\`, each containing:
+   - originalText: The original input text.
+   - i18nKey: The generated i18n key.
+   - path: The picked i18n file path.
+    -- The \`path\` must be exactly one from the provided \`available i18n files\`. Do not add or remove directory levels.
+    -- If no exact match exists, return \`undefined\`.
+    -- Do not assume the existence of paths based on similar names. Only use paths explicitly listed.
 
-3. **i18n Key Rules**:  
-   - Structure: \`app.[main module (optional)].[sub module (optional)].[semantic content]\`.  
-   - Extract module names from file paths when relevant, but do not force matches.  
-   - Prefer nouns for semantic content.  
-   - Use lowercase and hyphens for multi-word keys.  
-   - Keep it concise (preferably under 15 characters).  
+3. **i18n Key Rules**:
+   - Structure: \`app.[main module (optional)].[sub module (optional)].[semantic content]\`.
+   - Extract module names from file paths when relevant, but do not force matches.
+   - Prefer nouns for semantic content.
+   - Use lowercase and hyphens for multi-word keys.
+   - Keep it concise.
 
-4. **File Matching Rules**:  
-   - Match the most relevant functional module.  
-   - Prioritize files in the same directory hierarchy.  
-   - Only use provided file names—do not create new ones.  
+4. **File Matching Rules**:
+   - Match the most relevant functional module.
+   - Prioritize files in the same directory hierarchy.
+   - Only use provided file names—do not create new ones.
 
-5. **Response Requirements**:  
-   - Maintain the same input order in the output.  
-   - Ensure each input has a corresponding output.  
+5. **Response Requirements**:
+   - Maintain the same input order in the output.
+   - Ensure each input has a corresponding output.
    - **Return JSON format strictly.**`;
 
     const userPrompt = `### Input:
@@ -95,7 +98,7 @@ ${i18nFiles.join('\n')}
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
             ],
-            temperature: 0.5,
+            temperature: 0.2,
             response_format: { type: 'json_object' }
         });
 
