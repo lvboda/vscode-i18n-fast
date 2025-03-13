@@ -1,18 +1,27 @@
-import { workspace } from 'vscode';
+import * as vscode from 'vscode';
 import * as lodash from 'lodash';
 import * as qs from 'qs';
-import * as safeEval from 'safe-eval';
 import * as crypto from 'crypto-js';
-import * as fg from 'fast-glob';
+import * as uuid from 'uuid';
+import * as prettier from 'prettier';
+import * as babelParser from '@babel/parser';
+import traverse from '@babel/traverse';
 
-import { showMessage } from './tips';
-import { convert2pinyin } from './utils';
 import { getConfig } from './config';
+import { showMessage } from './tips';
+import { FILE_IGNORE } from './constant';
+import Watcher, { WATCH_STATE } from './watcher';
+import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
 
-import type { TextEditor } from 'vscode';
+import type { TextDocument, Uri, TextEditor } from 'vscode'
+import type { ConvertGroup, I18nGroup } from './types';
+import type I18n from './i18n';
+
+type WorkspaceHook = Map<string, Record<string, (context: Record<string, any>) => any>>;
 
 class Hook {
-    private hook = {} as Record<string, (context: Record<string, any>) => any>;
+    private hookMap: WorkspaceHook = new Map();
+    private watcherMap: Map<string, Watcher> = new Map();
     private loading = false;
     private static instance: Hook;
 
@@ -21,68 +30,99 @@ class Hook {
         return Hook.instance;
     }
 
-    constructor() {
-        this.init();
+    private disposeMap(workspaceKey: string) {
+        this.hookMap.delete(workspaceKey);
     }
 
-    private async init() {
-        await this.loadHook();
-        await this.watchHook();
+    private disposeWatcher(workspaceKey: string) {
+        const watcher = this.watcherMap.get(workspaceKey);
+        if (!watcher) return;
+        watcher.dispose();
+        this.watcherMap.delete(workspaceKey);
     }
 
-    private async loadHook() {
+    dispose(workspaceKey: string) {
+        this.disposeMap(workspaceKey);
+        this.disposeWatcher(workspaceKey);
+    }
+
+    setHook(workspaceKey: string, path: string) {
+        // 删除 require 缓存
+        delete require.cache[require.resolve(path)];
+        this.hookMap.set(workspaceKey, require(path));
+    }
+
+    async init(i18n: I18n) {
+        return await this.reload(i18n, getConfig().hookFilePattern);
+    }
+
+    async reload(i18n: I18n, i18nFilePattern?: string) {
+        const workspaceKey = getWorkspaceKey();
+        if (!workspaceKey) return;
+        this.dispose(workspaceKey);
+        if (!i18nFilePattern) return;
+
         this.loading = true;
         try {
-            const { hookFilePath } = getConfig();
-            const [file] = await workspace.findFiles(`**${hookFilePath}`, `{**/node_modules/**, **/.git/**, **/@types/**, **/.vscode/**, **.d.ts, **/.history/**}`);
-            if (!file) return;
+            const [file] = await vscode.workspace.findFiles(i18nFilePattern, FILE_IGNORE);
+            if (!file) {
+                this.hookMap.delete(workspaceKey);
+                return;
+            }
     
-            // 删除 require 缓存
-            delete require.cache[require.resolve(file.path)];
-            this.hook = require(file.path);
-        } catch(error) {
-            showMessage('warn', `<loadHook error> ${error}`);
+            this.setHook(workspaceKey, file.fsPath);
+
+            this.watcherMap.set(workspaceKey, new Watcher(i18nFilePattern).on(async (state, uri) => {
+                switch (state) {
+                    case WATCH_STATE.CHANGE:
+                        this.setHook(workspaceKey, uri.fsPath);
+                        break;
+                    case WATCH_STATE.DELETE:
+                        this.hookMap.delete(workspaceKey);
+                        break;
+                }
+
+                await i18n.reload(this, i18nFilePattern);
+            }));
+        } catch(error: any) {
+            showMessage('warn', `<loadHook error> ${error?.stack}`);
         } finally {
             this.loading = false;
         }
     }
 
-    private async watchHook() {
-        const { hookFilePath } = getConfig();
-        const watcher = workspace.createFileSystemWatcher(`**${hookFilePath}`);
-        // TODO watcher.onDidChange(this.loadHook); 这样写的 this 问题记录一下
-        watcher.onDidCreate(() => this.loadHook());
-        watcher.onDidChange(() => this.loadHook());
-        watcher.onDidDelete(() => this.loadHook());
-    }
-
     private genContext(context: Record<string, any>) {
         return {
-            ...context,
-            workspace,
+            ...lodash.cloneDeep(context),
             qs,
-            fg,
             crypto,
-            convert2pinyin,
+            uuid,
             _: lodash,
-        }
-    }
-
-    private callExpr<T = any,>(exprName: string, context: Record<string, any>, defaultResult: T): T {
-        try {
-            const config = getConfig();
-            return safeEval<T>(config[`${exprName}Expr` as keyof typeof config] as string, this.genContext(context));
-        } catch (error) {
-            showMessage('warn', `<call ${exprName} expr error, please check expr> ${error}`);
-            return defaultResult;
+            vscode,
+            prettier,
+            hook: this,
+            babel: { ...babelParser, traverse },
+            convert2pinyin,
+            isInJsxElement,
+            isInJsxAttribute,
+            writeFileByEditor,
+            getICUMessageFormatAST,
+            safeCall,
+            asyncSafeCall,
+            getConfig,
+            setLoading,
         }
     }
 
     private async callHook<T = any>(hookName: string, context: Record<string, any>, defaultResult: T): Promise<T> {
         try {
-            return await this.hook[hookName](this.genContext(context));
-        } catch (error) {
-            showMessage('warn', `<call ${hookName} hook error, please check hook> ${error}`);
+            const workspaceKey = getWorkspaceKey();
+            if (!workspaceKey) return defaultResult;
+            const hook = this.hookMap.get(workspaceKey);
+            if (!hook || !lodash.isFunction(hook[hookName])) return defaultResult;
+            return await hook[hookName](this.genContext(context));
+        } catch (error: any) {
+            showMessage('warn', `<call ${hookName} hook error, please check hook> ${error?.stack}`);
             return defaultResult;
         }
     }
@@ -92,35 +132,23 @@ class Hook {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
-        if (this.hook[name]) {
-            return await this.callHook(name, context, defaultResult);
-        }
-
-        return this.callExpr(name, context, defaultResult);
+        return await this.callHook(name, context, defaultResult);
     }
 
-    async match(context: { documentText: string }) {
-        return await this.call<MatchedGroup[]>('match', context, []);
+    async match(context: { document: TextDocument }) {
+        return await this.call<ConvertGroup[]>('match', context, []);
     }
 
-    async customParam(context: { matchedGroup: MatchedGroup }) {
-        return await this.call<CustomParamGroup>('customParam', context, [context.matchedGroup[1], null]);
+    async convert(context: { convertGroups: ConvertGroup[], document: TextDocument }) {
+        return await this.call<ConvertGroup[]>('convert', context, context.convertGroups);
     }
 
-    async i18nKey(context: { originalText: string, realText: string, customParam: CustomParam }) {
-        return await this.call<string>('i18nKey', context, '');
+    async write(context: { convertGroups: ConvertGroup[], editor: TextEditor, document: TextDocument }) {
+        return await this.call<boolean>('write', context, false);
     }
 
-    async codeOverwrite(context: { i18nKey: string, originalText: string, realText: string, customParam: CustomParam }) {
-        return await this.call<string>('codeOverwrite', context, '');
-    }
-
-    async i18nFilePath(context: { editor: TextEditor }) {
-        return await this.call<string[]>('i18nFilePath', context, []);
-    }
-
-    async i18nFileOverwrite(context: { fileContent: string, matchedGroups: MatchedGroup[] }) {
-        return await this.call<string>('i18nFileOverwrite', context, '');
+    async i18nGroup(context: { i18nFileUri: Uri }) {
+        return await this.call<I18nGroup[]>('i18nGroup', context, []);
     }
 }
 

@@ -1,26 +1,29 @@
-import { workspace } from "vscode";
+import { workspace } from 'vscode';
 
 import { PLUGIN_NAME } from "./constant";
 
 import type { WorkspaceConfiguration } from "vscode";
 
-const defaultConfig = {
-    hookFilePath: '',
+type Config = {
+    hookFilePattern: string;
+    i18nFilePattern: string;
+    autoMatchChinese: boolean;
+    conflictPolicy: 'reuse' | 'ignore' | 'picker' | 'smart';
+}
+
+const defaultConfig: Config = {
+    hookFilePattern: 'i18n-fast.hook.js',
+    i18nFilePattern: '',
     autoMatchChinese: true,
-    matchExpr: "[...documentText.matchAll(/%(.+?)%/g).map((arr) => arr?.[1]).filter(Boolean)]",
-    customParamExpr: "",
-    i18nKeyExpr: "",
-    codeOverwriteExpr: "",
-    i18nFilePathExpr: "",
-    i18nFileOverwriteExpr: "",
+    conflictPolicy: 'smart',
 };
 
-function genConfig(config: WorkspaceConfiguration) {
+const genConfig = (config: WorkspaceConfiguration) => {
     return Object.entries(defaultConfig).reduce((pre, [key]) => {
         return { ...pre, [key]: config.get(key) };
     }, defaultConfig);
 }
 
-export function getConfig() {
+export const getConfig = () => {
     return genConfig(workspace.getConfiguration(PLUGIN_NAME));
 }

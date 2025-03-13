@@ -11,3 +11,5 @@ vsc-extension-quickstart.md
 README.zh-cn.json
 token.txt
 *.vsix
+test/**
+example/**

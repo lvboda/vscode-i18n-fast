@@ -2,8 +2,8 @@ import { window, MarkdownString } from 'vscode';
 
 import { PLUGIN_NAME } from './constant';
 
-function genMessage(message: string) {
-    return `[ ${PLUGIN_NAME} ] ${message}`;
+function genMessage(message: string, maxLength?: number) {
+    return `[${PLUGIN_NAME}] ${maxLength ? (message.length > maxLength ? message.slice(0, maxLength) + '...' : message) : message}`;
 }
 
 const globalStatusBar = window.createStatusBarItem();
@@ -18,16 +18,16 @@ export function hideStatusBar() {
     globalStatusBar.hide();
 }
 
-export function showMessage(type: "info" | "warn" | "error" = "info", message: string, ...args: string[]) {
+export function showMessage(type: "info" | "warn" | "error" = "info", message: string, maxLength = 300, ...args: string[]) {
     switch (type) {
         case "info":
-            window.showInformationMessage(genMessage(message), ...args);
+            window.showInformationMessage(genMessage(message, maxLength), ...args);
             break;
         case "warn":
-            window.showWarningMessage(genMessage(message), ...args);
+            window.showWarningMessage(genMessage(message, maxLength), ...args);
             break;
         case "error":
-            window.showErrorMessage(genMessage(message), ...args);
+            window.showErrorMessage(genMessage(message, maxLength), ...args);
             break;
     }
 }
