@@ -8,7 +8,7 @@ import { showMessage } from './tips';
 import { getConfig } from './config';
 import { asyncInvokeWithErrorHandler } from './error';
 import { COMMAND_CONVERT_KEY, PLUGIN_NAME } from './constant';
-import { isRangeIntersect, AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading } from './utils';
+import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading } from './utils';
 
 import type { TextEditor, DecorationOptions } from 'vscode';
 import type { ConvertGroup, I18nGroup } from './types';
@@ -82,7 +82,7 @@ export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
                         editor.document.positionAt(index + group.matchedText.length)
                     );
         
-                    if (!processedRanges.some((processedRange) => isRangeIntersect(processedRange, range))) {
+                    if (!processedRanges.some((processedRange) => !!range.intersection(processedRange))) {
                         processedRanges.push(range);
                         group.range = range;
                         break;
@@ -191,7 +191,7 @@ export const createOnDidChangeAddDecorationHandler = (i18n: I18n) => {
                     const contentText = truncateByDisplayWidth(decorationText);
                     const offset = editor.document.offsetAt(deltaVisibleRange.start);
                     const range = new Range(editor.document.positionAt(begin + offset), editor.document.positionAt(end + offset));
-                    if (processedRanges.some((processedRange) => isRangeIntersect(processedRange, range)) || !range.isSingleLine) return pre;
+                    if (processedRanges.some((processedRange) => !!range.intersection(processedRange)) || !range.isSingleLine) return pre;
                     processedRanges.push(range);
 
                     const hoverMessage = new MarkdownString;

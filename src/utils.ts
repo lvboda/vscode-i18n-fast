@@ -317,14 +317,6 @@ export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: st
   return true;
 };
 
-// 相等 || 包含 || 交叉
-export const isRangeIntersect = (range1: Range, range2: Range): boolean => {
-  return (
-    range1.end.isAfterOrEqual(range2.start) &&
-    range1.start.isBeforeOrEqual(range2.end)
-  );
-};
-
 const commonProcess = (node: MessageFormatElement): string => {
   if (isArgumentElement(node)) {
     return `{${node.value}}`;

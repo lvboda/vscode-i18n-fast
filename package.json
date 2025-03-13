@@ -2,7 +2,7 @@
   "name": "vscode-i18n-fast",
   "displayName": "I18n Fast",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "lvboda",
   "author": {
     "name": "Boda Lü",
@@ -20,14 +20,50 @@
     "url": "https://github.com/lvboda/vscode-i18n-fast/issues"
   },
   "keywords": [
+    "I18n Fast",
     "i18n-fast",
-    "i18n"
+    "vscode-i18n-fast",
+    "i18n",
+		"i18n Ally",
+		"i18n ally",
+		"i18n-ally",
+    "多语言流程化",
+		"vue i18n",
+		"vue3 i18n",
+		"react i18n",
+		"shopify-i18n",
+		"i18next",
+		"多语言",
+		"多语言插件",
+		"多语言翻译",
+		"i18n插件",
+		"i18n tool",
+		"国际化",
+		"国际化多语言",
+		"自动翻译",
+		"中文",
+		"扫描",
+		"翻译",
+		"翻译插件",
+		"i18n vue",
+		"文案",
+		"du-i18n",
+		"vue",
+		"vue3",
+		"react",
+		"ali",
+		"react-intl",
+		"国际化 i18n"
   ],
   "engines": {
-    "vscode": "^1.73.0"
+    "vscode": "^1.59.0"
   },
   "categories": [
-    "Other"
+    "Extension Packs",
+		"Programming Languages",
+		"Visualization",
+		"Debuggers",
+		"Notebooks"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -103,11 +139,11 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
+    "package": "vsce package",
+    "publish": "vsce publish",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "lint": "eslint src --ext ts"
   },
   "devDependencies": {
     "@types/babel__traverse": "^7.20.6",
