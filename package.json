@@ -56,7 +56,7 @@
 		"国际化 i18n"
   ],
   "engines": {
-    "vscode": "^1.59.0"
+    "vscode": "^1.73.0"
   },
   "categories": [
     "Extension Packs",
