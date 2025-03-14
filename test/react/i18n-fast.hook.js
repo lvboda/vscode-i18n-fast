@@ -35,7 +35,7 @@ module.exports = {
             };
         });
     },
-    write: async ({ convertGroups, _, prettier, vscode, writeFileByEditor, editor, setLoading, getConfig }) => {
+    write: async ({ convertGroups, _, showMessage, vscode, writeFileByEditor, editor, setLoading, getConfig }) => {
         await writeFileByEditor(editor.document.uri, convertGroups.filter(({ range, overwriteText }) => !_.isNil(range) && !_.isNil(overwriteText)).map(({ range, overwriteText }) => ({ range, content: overwriteText })));
 
         let needCreateGroups = convertGroups.filter(({ type }) => type === 'new');
@@ -77,34 +77,22 @@ module.exports = {
                 }
 
                 if (!i18nFileContent.trim()) {
-                    i18nFileContent = 'module.exports = {};';
+                    i18nFileContent = 'module.exports = {\n};';
                 }
 
                 const content = groups.reduce((pre, { i18nKey, i18nValue }) => {
                     if (i18nKey && i18nValue) {
-                        pre += `"${i18nKey}": "${i18nValue}",`;
+                        pre += `'${i18nKey}': '${i18nValue}',`;
                     }
                     return pre;
                 }, '');
 
                 if (!content) continue;
-
-                await writeFileByEditor(path, await prettier.format(
-                  i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `,${content}};`),
-                  {
-                    parser: 'babel',
-                    trailingComma: 'none',
-                    singleQuote: true,
-                    quoteProps: 'preserve',
-                    proseWrap: 'never',
-                    printWidth: 2000
-                  }
-                ), true);
+                await writeFileByEditor(path, i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `${/module\.exports\s*=\s*{\s*}\s*;/.test(i18nFileContent) ? '' : ','}\n  ${content}\n};`), true);
             }
         })
-        .finally(() => {
-            setLoading(false);
-        });
+        .catch((error) => showMessage('error', `<genI18nKey error> ${error?.stack || error}`))
+        .finally(() => setLoading(false));
     },
     i18nGroup: async ({ i18nFileUri, vscode, getICUMessageFormatAST, safeCall }) => {
         const i18nFileContentLines = (await vscode.workspace.fs.readFile(i18nFileUri)).toString().split('\n');
