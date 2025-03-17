@@ -36,9 +36,8 @@ export async function activate(context: ExtensionContext) {
 		window.onDidChangeTextEditorVisibleRanges(() => debouncedOnDidChangeAddDecorationHandler(window.activeTextEditor)),
 		workspace.onDidChangeConfiguration(async (event) => {
 			if ([`${PLUGIN_NAME}.hookFilePattern`, `${PLUGIN_NAME}.i18nFilePattern`].some((key) => event.affectsConfiguration(key))) {
-				const { hookFilePattern, i18nFilePattern } = getConfig();
-				await hook.reload(i18n, hookFilePattern);
-				await i18n.reload(hook, i18nFilePattern);
+				await hook.reload(i18n);
+				await i18n.reload(hook);
 			}
 		}),
 	);

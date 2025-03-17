@@ -38,10 +38,11 @@ export default class I18n {
     }
 
     async init(hook: Hook) {
-        return await this.reload(hook, getConfig().i18nFilePattern);
+        return await this.reload(hook);
     }
 
     async reload(hook: Hook, i18nFilePattern?: string) {
+        i18nFilePattern = i18nFilePattern || getConfig().i18nFilePattern;
         const workspaceKey = getWorkspaceKey();
         if (!workspaceKey) return;
         this.dispose(workspaceKey);
