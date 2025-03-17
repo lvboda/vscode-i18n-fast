@@ -55,16 +55,17 @@ export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
         if (!editor) return;
         
         clearWriteHistory();
-        const documentText = editor.document.getText();
+        const document = editor.document;
+        const documentText = document.getText();
 
         // 参数 > 选中 > 当前文件的自定义匹配 > 当前文件的中文匹配
-        let convertGroups: ConvertGroup[] = groups || editor.selections.map((selection) => ({ i18nValue: editor.document.getText(selection), range: selection }));
+        let convertGroups: ConvertGroup[] = groups || editor.selections.map((selection) => ({ i18nValue: document.getText(selection), range: selection }));
 
         if (!convertGroups.length) {
-            convertGroups.push(...await hook.match({ document: editor.document }));
+            convertGroups.push(...await hook.match({ document }));
 
             if (getConfig().autoMatchChinese) {
-                convertGroups.push(...matchChinese(editor.document));
+                convertGroups.push(...matchChinese(document));
             }
         }
 
@@ -78,8 +79,8 @@ export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
 
                 while (index !== -1) {
                     const range = new Range(
-                        editor.document.positionAt(index),
-                        editor.document.positionAt(index + group.matchedText.length)
+                        document.positionAt(index),
+                        document.positionAt(index + group.matchedText.length)
                     );
         
                     if (!processedRanges.some((processedRange) => !!range.intersection(processedRange))) {
@@ -102,7 +103,7 @@ export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
                     return group;
                 case 'picker': 
                 case 'smart':
-                    if (matchedGroups.length === 1 && conflictPolicy === 'smart') return { ...group, i18nKey: matchedGroups[0].key, type: 'ready' };
+                    if (matchedGroups.length === 1 && conflictPolicy === 'smart') return { ...group, i18nKey: matchedGroups[0].key, type: 'exist' };
 
                     editor.revealRange(group.range);
                     editor.setDecorations(i18nKeyConflictDecorationType, [{
@@ -112,16 +113,16 @@ export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
                     }]);
                     const i18nKey = await getI18nKeyByPicker(matchedGroups);
                     editor.setDecorations(i18nKeyConflictDecorationType, []);
-                    return { ...group, i18nKey: i18nKey || group.i18nKey, type: !!i18nKey ? 'ready' : 'new' };
+                    return { ...group, i18nKey: i18nKey || group.i18nKey, type: !!i18nKey ? 'exist' : 'new' };
                 case 'reuse':
                 default:
-                    return { ...group, i18nKey: matchedGroups[0].key, type: 'ready' };
+                    return { ...group, i18nKey: matchedGroups[0].key, type: 'exist' };
             }
         }));
 
-        convertGroups = await hook.convert({ convertGroups, document: editor.document });
+        convertGroups = await hook.convert({ convertGroups, document });
 
-        await hook.write({ convertGroups, editor, document: editor.document });
+        await hook.write({ convertGroups, document });
     };
 
     return asyncInvokeWithErrorHandler(handler);

@@ -8,9 +8,7 @@ export type ConvertGroup = {
     i18nKey?: string;
     params?: Record<string, any>;
     overwriteText?: string;
-    documentText?: string;
-    editingDocumentText?: string;
-    type?: 'ready' | 'new';
+    type?: 'exist' | 'new';
 };
 
 export type I18nGroup = {

@@ -1,11 +1,41 @@
 const { OpenAI } = require('openai');
 
 const openai = new OpenAI({
-    apiKey: 'sk-f97325f50afb4ab3a374a9e6cd9502c3',
+    apiKey: '', // <- your api key
     baseURL: 'https://api.deepseek.com',
 });
 
 const examples = [
+    {
+        path: 'application/third_party/language/chinese/erp_lang.php',
+        map: {
+            'com_pau_warehouse_inventory_new_stock': '新库存总数',
+            'com_pau_warehouse_inventory_sold_new_stock': '新可售',
+            'com_pau_warehouse_inventory_order_deliver': '订单标发',
+            'com_pau_warehouse_inventory_stock_change': '可售库存变动记录',
+            'com_package_can_print': '全部到齐, 可以打包',
+            'com_package_pick_item': '已到货, 补货拣货',
+            'com_package_print_paper': '打印面单',
+            'com_package_print_package_tag': '打印包裹标签',
+            'com_package_reprint_paper': '已打印，重新打印面单',
+            'com_package_scan_error1': '货品({0})不属于当前包裹, 请扫描正确的货品',
+            'com_crm_customer_message': '买家消息',
+            'com_crm_platform_message': '平台消息',
+            'com_crm_customer_platform_message': '买家、平台消息',
+            'com_crm_customer_platform_message_chose': '选择消息平台',
+            'com_crm_reply_message': '回复消息',
+            'com_wfs_ple_select_category': '请先选择转换类目',
+            'com_wfs_async_listing_attr_tip': '系统将自动为您从Listing页面获取品牌、产品属性、长宽高重(仅限酋长刊登的Listing)等信息，未能成功获取的，可自行填写',
+            'com_wfs_sync_stock': '同步WFS库存',
+            'com_wfs_sync_finish': '同步完成',
+            'com_walmart_lag_time': '履约时间',
+            'com_product_safety_information_pictograms': '象形图',
+            'com_product_safety_information_statements': '安全声明',
+            'com_product_safety_information_additional_information': '附加信息',
+            'com_product_safety_information_pictograms_placeholder': '请输入象形图',
+            'com_product_safety_information_statements_placeholder': '请输入安全声明',
+        },
+    },
     {
         path: 'application/third_party/language/chinese/common_lang.php',
         map: {
@@ -25,36 +55,6 @@ const examples = [
             'com_preview': '预览',
             'com_title': '标题',
             'com_close': '关闭',
-        },
-    },
-    {
-        path: 'application/third_party/language/chinese/erp_lang.php',
-        map: {
-            'pau_warehouse_inventory_new_stock': '新库存总数',
-            'pau_warehouse_inventory_sold_new_stock': '新可售',
-            'pau_warehouse_inventory_order_deliver': '订单标发',
-            'pau_warehouse_inventory_stock_change': '可售库存变动记录',
-            'package_can_print': '全部到齐, 可以打包',
-            'package_pick_item': '已到货, 补货拣货',
-            'package_print_paper': '打印面单',
-            'package_print_package_tag': '打印包裹标签',
-            'package_reprint_paper': '已打印，重新打印面单',
-            'package_scan_error1': '货品({0})不属于当前包裹, 请扫描正确的货品',
-            'crm_customer_message': '买家消息',
-            'crm_platform_message': '平台消息',
-            'crm_customer_platform_message': '买家、平台消息',
-            'crm_customer_platform_message_chose': '选择消息平台',
-            'crm_reply_message': '回复消息',
-            'wfs_ple_select_category': '请先选择转换类目',
-            'wfs_async_listing_attr_tip': '系统将自动为您从Listing页面获取品牌、产品属性、长宽高重(仅限酋长刊登的Listing)等信息，未能成功获取的，可自行填写',
-            'wfs_sync_stock': '同步WFS库存',
-            'wfs_sync_finish': '同步完成',
-            'walmart_lag_time': '履约时间',
-            'product_safety_information_pictograms': '象形图',
-            'product_safety_information_statements': '安全声明',
-            'product_safety_information_additional_information': '附加信息',
-            'product_safety_information_pictograms_placeholder': '请输入象形图',
-            'product_safety_information_statements_placeholder': '请输入安全声明',
         },
     },
 ];
@@ -81,7 +81,7 @@ const genI18nKey = async (inputs) => {
     -- Refer to \`common_lang.php\` for examples.
 
 3. **i18n Key Rules**:
-   - Structure: \`[main module (optional)]_[sub module (optional)]_[semantic content]\`.
+   - Structure: \`com_[main module (optional)]_[sub module (optional)]_[semantic content]\`.
    - Extract module names from file paths when relevant, but do not force matches.
    - Prefer nouns for semantic content.
    - Separate multiple words with underscores (_).

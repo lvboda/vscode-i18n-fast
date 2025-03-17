@@ -49,7 +49,7 @@ export default class I18n {
         const i18nFileUris = await workspace.findFiles(i18nFilePattern, FILE_IGNORE);
         if (!i18nFileUris.length) return;
     
-        const i18nMap = await i18nFileUris.reduce<Promise<PathMap>>(async (map, i18nFileUri) => (await map).set(i18nFileUri.fsPath, await hook.i18nGroup({ i18nFileUri })), Promise.resolve(new Map()));
+        const i18nMap = await i18nFileUris.reduce<Promise<PathMap>>(async (map, i18nFileUri) => (await map).set(i18nFileUri.fsPath, await hook.matchI18n({ i18nFileUri })), Promise.resolve(new Map()));
         this.i18nMap.set(workspaceKey, i18nMap);
 
         this.watcherMap.set(workspaceKey, new Watcher(i18nFilePattern).on(async (state, uri) => {
@@ -57,7 +57,7 @@ export default class I18n {
 
             switch (state) {
                 case WATCH_STATE.CHANGE:
-                    pathMap.set(uri.fsPath, await hook.i18nGroup({ i18nFileUri: uri }));
+                    pathMap.set(uri.fsPath, await hook.matchI18n({ i18nFileUri: uri }));
                     this.i18nMap.set(workspaceKey, pathMap);
                     break;
                 case WATCH_STATE.CREATE:

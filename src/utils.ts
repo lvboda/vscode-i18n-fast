@@ -45,7 +45,7 @@ export const asyncSafeCall = async <T extends (...args: any[]) => Promise<any>>(
   }
 }
 
-const getAST = (codeText: string) => {
+export const getAST = (codeText: string) => {
   return parse(codeText, {
     sourceType: "module",
     plugins: ["jsx"],
@@ -392,8 +392,8 @@ export const getWorkspaceKey = () => {
 
 let loadingCount = 0;
 export const isLoading = () => loadingCount > 0;
-export const setLoading = (isLoading: boolean, text = ' $(loading~spin) generating...') => {
-  loadingCount += isLoading ? 1 : -1;
+export const setLoading = (loading: boolean, text = ' $(loading~spin) generating...') => {
+  loadingCount += loading ? 1 : -1;
   if (loadingCount > 0) {
     showStatusBar(text);
   } else {

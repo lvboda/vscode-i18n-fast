@@ -111,7 +111,7 @@
         "i18n-fast.hookFilePattern": {
           "description": "%package.configuration.hookFilePattern%",
           "type": "string",
-          "default": "i18n-fast.hook.js"
+          "default": ".vscode/i18n-fast.hook.js"
         },
         "i18n-fast.i18nFilePattern": {
           "description": "%package.configuration.i18nFilePattern%",

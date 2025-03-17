@@ -8,4 +8,5 @@ module.exports = {
   'app.test.unarchive': '取消归档',
   'app.test.coverage-assessment': '覆盖面评估',
   'app.test.date-budget': '日期和预算',
+  'app.test.text': '测试文案',
 };
