@@ -55,15 +55,15 @@ class Hook {
         return await this.reload(i18n, getConfig().hookFilePattern);
     }
 
-    async reload(i18n: I18n, i18nFilePattern?: string) {
+    async reload(i18n: I18n, hookFilePattern?: string) {
         const workspaceKey = getWorkspaceKey();
         if (!workspaceKey) return;
         this.dispose(workspaceKey);
-        if (!i18nFilePattern) return;
+        if (!hookFilePattern) return;
 
         this.loading = true;
         try {
-            const [file] = await vscode.workspace.findFiles(i18nFilePattern, FILE_IGNORE);
+            const [file] = await vscode.workspace.findFiles(hookFilePattern, FILE_IGNORE);
             if (!file) {
                 this.hookMap.delete(workspaceKey);
                 return;
@@ -71,7 +71,7 @@ class Hook {
     
             this.setHook(workspaceKey, file.fsPath);
 
-            this.watcherMap.set(workspaceKey, new Watcher(i18nFilePattern).on(async (state, uri) => {
+            this.watcherMap.set(workspaceKey, new Watcher(hookFilePattern).on(async (state, uri) => {
                 switch (state) {
                     case WATCH_STATE.CHANGE:
                         this.setHook(workspaceKey, uri.fsPath);
@@ -81,7 +81,7 @@ class Hook {
                         break;
                 }
 
-                await i18n.reload(this, i18nFilePattern);
+                await i18n.reload(this);
             }));
         } catch(error: any) {
             showMessage('warn', `<loadHook error> ${error?.stack}`);
