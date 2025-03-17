@@ -90,7 +90,7 @@ const genI18nKey = async (inputs, i18nFiles) => {
 5. **Response Requirements**:
    - Maintain the same input order in the output.
    - Ensure each input has a corresponding output.
-   - **Return JSON format strictly.**`;
+   - You must return a **valid JSON string**, without extra text, explanations, or code blocks.`;
 
     const userPrompt = `### Input:
 ${JSON.stringify(inputs, null, 2)}
