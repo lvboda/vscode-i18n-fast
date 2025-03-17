@@ -3,7 +3,6 @@ import * as lodash from 'lodash';
 import * as qs from 'qs';
 import * as crypto from 'crypto-js';
 import * as uuid from 'uuid';
-import * as prettier from 'prettier';
 import * as babelParser from '@babel/parser';
 import traverse from '@babel/traverse';
 
@@ -11,9 +10,9 @@ import { getConfig } from './config';
 import { showMessage } from './tips';
 import { FILE_IGNORE } from './constant';
 import Watcher, { WATCH_STATE } from './watcher';
-import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
+import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getAST, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
 
-import type { TextDocument, Uri, TextEditor } from 'vscode'
+import type { TextDocument, Uri } from 'vscode'
 import type { ConvertGroup, I18nGroup } from './types';
 import type I18n from './i18n';
 
@@ -99,18 +98,19 @@ class Hook {
             uuid,
             _: lodash,
             vscode,
-            prettier,
             hook: this,
             babel: { ...babelParser, traverse },
             convert2pinyin,
             isInJsxElement,
             isInJsxAttribute,
             writeFileByEditor,
+            getAST,
             getICUMessageFormatAST,
             safeCall,
             asyncSafeCall,
             getConfig,
             setLoading,
+            showMessage,
         }
     }
 
@@ -143,12 +143,12 @@ class Hook {
         return await this.call<ConvertGroup[]>('convert', context, context.convertGroups);
     }
 
-    async write(context: { convertGroups: ConvertGroup[], editor: TextEditor, document: TextDocument }) {
+    async write(context: { convertGroups: ConvertGroup[], document: TextDocument }) {
         return await this.call<boolean>('write', context, false);
     }
 
-    async i18nGroup(context: { i18nFileUri: Uri }) {
-        return await this.call<I18nGroup[]>('i18nGroup', context, []);
+    async matchI18n(context: { i18nFileUri: Uri }) {
+        return await this.call<I18nGroup[]>('matchI18n', context, []);
     }
 }
 

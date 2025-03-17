@@ -1,7 +1,7 @@
 const { OpenAI } = require('openai');
 
 const openai = new OpenAI({
-    apiKey: 'sk-f97325f50afb4ab3a374a9e6cd9502c3',
+    apiKey: '', // <- your api key
     baseURL: 'https://api.deepseek.com',
 });
 
@@ -40,6 +40,16 @@ const examples = [
             'app.report.listing.wait.ebay.handle': '等待eBay处理',
         },
     },
+    {
+        path: 'app/share/locales/zh-CN/report/common.js',
+        map: {
+            'app.confirm': '确定',
+            'app.accept': '接受',
+            'app.refresh': '刷新',
+            'app.success': '完成',
+            'app.return': '返回',
+        },
+    },
 ];
 
 /**
@@ -75,6 +85,7 @@ const genI18nKey = async (inputs, i18nFiles) => {
    - Match the most relevant functional module.
    - Prioritize files in the same directory hierarchy.
    - Only use provided file names—do not create new ones.
+   - Ensure that the matching process favors more specific modules over general ones.
 
 5. **Response Requirements**:
    - Maintain the same input order in the output.

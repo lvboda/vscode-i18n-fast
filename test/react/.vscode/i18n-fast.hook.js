@@ -1,3 +1,5 @@
+const genI18nKey = require('./gen-i18n-key');
+
 /**
  * i18n-fast hook
  * - Use CommonJS
@@ -52,123 +54,6 @@
  * @property {(loading: boolean, text?: string) => void} setLoading
  * @property {(type: "info" | "warn" | "error", message: string, maxLength = 300, ...args: string[]) => void} showMessage
 */
-
-const examples = [
-    {
-        path: 'app/share/locales/zh-CN/accountAuth.js',
-        map: {
-            'app.account.auth.current-account': '当前账号',
-            'app.account.auth.pf-auth-fmt': '{platform}账号授权',
-            'app.account.auth.step.next': '下一步',
-            'app.account.auth.operator-step': '操作步骤',
-            'app.account.auth.click-me-to-auth': '点此授权',
-            'app.account': '账号',
-        },
-    },
-    {
-        path: 'app/share/locales/zh-CN/report/buybox.js',
-        map: {
-            'app.report.buybox.winner': 'Buy Box拥有者',
-            'app.report.buybox.seller.id': '卖家ID',
-            'app.report.buybox.followers.watch': '跟卖调价',
-            'app.report.buybox.no.followers': '无跟卖',
-            'app.report.buybox.competitor.quantity': '竞争对手数',
-            'app.report.buybox.competitor.detail': '竞争对手明细',
-            'app.report.buybox.competitor.quantity.7day': '7日内竞争对手数',
-            'app.report.buybox.be.followed.shop': '被跟卖店铺',
-            'app.report.buybox.filter.self.account': '过滤自己跟卖自己的账号',
-        },
-    },
-    {
-        path: 'app/share/locales/zh-CN/report/listing.js',
-        map: {
-            'app.report.listing.com.applied': '已应用',
-            'app.report.listing.dynamic.rate': '动态费率',
-            'app.report.listing.predict.ads.fee': '预计广告费用',
-            'app.report.listing.wait.ebay.handle': '等待eBay处理',
-        },
-    },
-    {
-        path: 'app/share/locales/zh-CN/report/common.js',
-        map: {
-            'app.confirm': '确定',
-            'app.accept': '接受',
-            'app.refresh': '刷新',
-            'app.success': '完成',
-            'app.return': '返回',
-        },
-    },
-];
-
-/**
- * @param {{ text: string, path: string }[]} inputs
- * @param {string[]} i18nFiles
- * @returns {{ originalText: string, i18nKey: string, path?: string }[]}
-*/
-const genI18nKey = async (inputs, i18nFiles) => {
-    const systemPrompt = `You are an expert in generating i18n keys. Follow these instructions strictly:
-
-1. **Input Format**:
-   An array of objects, each containing:
-   - text: The original text requiring an i18n key.
-   - path: The file path where the text appears.
-
-2. **Output Format**:
-   Return a JSON object with a single key: \`result\`, each containing:
-   - originalText: The original input text.
-   - i18nKey: The generated i18n key.
-   - path: The picked i18n file path.
-    -- The \`path\` must be exactly one from the provided \`available i18n files\`. Do not add or remove directory levels.
-    -- If no exact match exists, return \`undefined\`.
-    -- Do not assume the existence of paths based on similar names. Only use paths explicitly listed.
-
-3. **i18n Key Rules**:
-   - Structure: \`app.[main module (optional)].[sub module (optional)].[semantic content]\`.
-   - Extract module names from file paths when relevant, but do not force matches.
-   - Prefer nouns for semantic content.
-   - Use lowercase and hyphens for multi-word keys.
-   - Keep it concise.
-
-4. **File Matching Rules**:
-   - Match the most relevant functional module.
-   - Prioritize files in the same directory hierarchy.
-   - Only use provided file names—do not create new ones.
-   - Ensure that the matching process favors more specific modules over general ones.
-
-5. **Response Requirements**:
-   - Maintain the same input order in the output.
-   - Ensure each input has a corresponding output.
-   - You must return a **valid JSON string**, without extra text, explanations, or code blocks.`;
-
-    const userPrompt = `### Input:
-${JSON.stringify(inputs, null, 2)}
-
-### Reference Examples:
-${examples.map(e => `[File] ${e.path}\n[Keys]\n${Object.entries(e.map).map(([k, v]) => `${k} = ${v}`).join('\n')}`).join('\n\n')}
-
-### Available i18n Files:
-${i18nFiles.join('\n')}
-`;
-    const res = await (await fetch('http://10.0.2.206:8003/api/v1/generate/completion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            system: systemPrompt,
-            prompt: userPrompt,
-            timeout: 30,
-            max_retries: 3,
-            model: "gpt-4o-mini",
-            stream: false,
-            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }]
-        })
-    })).json();
-
-    const { result } = JSON.parse(res.choices[0].message.content);
-
-    if (inputs.some(({ text }, index) => !result[index].originalText === text)) throw new Error('generate structure error');
-    
-    return result;
-}
 
 module.exports = {
     /**

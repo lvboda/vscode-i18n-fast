@@ -12,7 +12,7 @@ type Config = {
 }
 
 const defaultConfig: Config = {
-    hookFilePattern: 'i18n-fast.hook.js',
+    hookFilePattern: '.vscode/i18n-fast.hook.js',
     i18nFilePattern: '',
     autoMatchChinese: true,
     conflictPolicy: 'smart',
