@@ -52,10 +52,11 @@ class Hook {
     }
 
     async init(i18n: I18n) {
-        return await this.reload(i18n, getConfig().hookFilePattern);
+        return await this.reload(i18n);
     }
 
     async reload(i18n: I18n, hookFilePattern?: string) {
+        hookFilePattern = hookFilePattern || getConfig().hookFilePattern;
         const workspaceKey = getWorkspaceKey();
         if (!workspaceKey) return;
         this.dispose(workspaceKey);
