@@ -1,31 +1,45 @@
 import { EventEmitter, Range, workspace, Position, Uri } from 'vscode';
-import { max } from 'lodash';
+import { isNil, max } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
+import Hook from './hook';
+import I18n from './i18n';
 import { getConfig } from './config';
 
 import type { TextDocumentContentProvider, DefinitionProvider, TextDocument } from 'vscode';
-import type I18n from './i18n';
+import { checkSupportType } from './utils';
+import { I18nGroup, SupportType } from './types';
+
+const genLocationLink = ({ supportType = SupportType.All, range, locationLink, filePath, line = 0 }: I18nGroup) => {
+    if (!checkSupportType(SupportType.Jump, supportType) || isNil(range)) return;
+    if (locationLink) return locationLink;
+    if (!filePath) return;
+
+    const lineEndPos = new Position(max([line - 1, 0]) || 0, Number.MAX_SAFE_INTEGER);
+    return [{
+        targetUri: Uri.file(filePath),
+        targetRange: new Range(lineEndPos, lineEndPos),
+        originSelectionRange: range,
+    }];
+}
 
 export class I18nJumpProvider implements DefinitionProvider {
     static instance: I18nJumpProvider;
 
-    static getInstance(i18n: I18n) {
+    static getInstance() {
         if (!I18nJumpProvider.instance) {
-            I18nJumpProvider.instance = new I18nJumpProvider(i18n);
+            I18nJumpProvider.instance = new I18nJumpProvider;
         }
         return I18nJumpProvider.instance;
     }
-
-    constructor(private i18n: I18n) {}
 
     async provideDefinition(document: TextDocument, position: Position) {
         // 排除掉 i18n 文件
         const { i18nFilePattern } = getConfig();
         if (!workspace.getWorkspaceFolder(document.uri) || !!match([workspace.asRelativePath(document.uri, false)], i18nFilePattern).length) return;
 
-        const i18nGroups = this.i18n.getI18nGroups();
+        const i18nGroups = I18n.getInstance().getI18nGroups();
         const [matched] = (new AhoCorasick(i18nGroups.map(({ key }) => key)))
             .matchInText(document.lineAt(position.line).text)
             .sort((a, b) => b.keyword.length - a.keyword.length)
@@ -33,14 +47,10 @@ export class I18nJumpProvider implements DefinitionProvider {
             .filter(({ range }) => range.contains(new Range(position, position)));
 
         if (!matched) return;
-        const { filePath, line = 0 } = i18nGroups.find(({ key }) => key === matched.keyword) || {};
-        if (!filePath) return;
-        const lineEndPos = new Position(max([line - 1, 0]) || 0, Number.MAX_SAFE_INTEGER);
-        return [{
-            targetUri: Uri.file(filePath),
-            targetRange: new Range(lineEndPos, lineEndPos),
-            originSelectionRange: matched.range,
-        }];
+        const group = i18nGroups.find(({ key }) => key === matched.keyword);
+        if (!group) return;
+
+        return genLocationLink((await Hook.getInstance().checkI18n({ i18nGroups: [{ ...group, range: matched.range }], document }))[0]);
     }
 }
 
@@ -49,7 +59,7 @@ export class MemoryDocumentProvider implements TextDocumentContentProvider {
 
     static getInstance() {
         if (!MemoryDocumentProvider.instance) {
-            MemoryDocumentProvider.instance = new MemoryDocumentProvider();
+            MemoryDocumentProvider.instance = new MemoryDocumentProvider;
         }
         return MemoryDocumentProvider.instance;
     }

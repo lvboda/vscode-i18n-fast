@@ -1,11 +1,11 @@
 import { workspace } from "vscode";
 
-import Watcher, { WATCH_STATE } from './watcher';
-import { getWorkspaceKey } from './utils';
+import Hook from './hook';
 import { getConfig } from "./config";
 import { FILE_IGNORE } from './constant';
+import { getWorkspaceKey } from './utils';
+import Watcher, { WATCH_STATE } from './watcher';
 
-import type Hook from './hook';
 import type { I18nGroup } from "./types";
 
 type PathMap = Map<string, I18nGroup[]>;
@@ -37,11 +37,11 @@ export default class I18n {
         this.disposeWatcher(workspaceKey);
     }
 
-    async init(hook: Hook) {
-        return await this.reload(hook);
+    async init() {
+        return await this.reload();
     }
 
-    async reload(hook: Hook, i18nFilePattern?: string) {
+    async reload(i18nFilePattern?: string) {
         i18nFilePattern = i18nFilePattern || getConfig().i18nFilePattern;
         const workspaceKey = getWorkspaceKey();
         if (!workspaceKey) return;
@@ -50,7 +50,7 @@ export default class I18n {
         const i18nFileUris = await workspace.findFiles(i18nFilePattern, FILE_IGNORE);
         if (!i18nFileUris.length) return;
     
-        const i18nMap = await i18nFileUris.reduce<Promise<PathMap>>(async (map, i18nFileUri) => (await map).set(i18nFileUri.fsPath, await hook.matchI18n({ i18nFileUri })), Promise.resolve(new Map()));
+        const i18nMap = await i18nFileUris.reduce<Promise<PathMap>>(async (map, i18nFileUri) => (await map).set(i18nFileUri.fsPath, await Hook.getInstance().matchI18n({ i18nFileUri })), Promise.resolve(new Map()));
         this.i18nMap.set(workspaceKey, i18nMap);
 
         this.watcherMap.set(workspaceKey, new Watcher(i18nFilePattern).on(async (state, uri) => {
@@ -58,7 +58,7 @@ export default class I18n {
 
             switch (state) {
                 case WATCH_STATE.CHANGE:
-                    pathMap.set(uri.fsPath, await hook.matchI18n({ i18nFileUri: uri }));
+                    pathMap.set(uri.fsPath, await Hook.getInstance().matchI18n({ i18nFileUri: uri }));
                     this.i18nMap.set(workspaceKey, pathMap);
                     break;
                 case WATCH_STATE.CREATE:

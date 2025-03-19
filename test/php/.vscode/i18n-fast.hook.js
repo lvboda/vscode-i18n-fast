@@ -185,4 +185,14 @@ module.exports = {
                 }) + 1,
             }));
     },
+
+    /**
+     * check i18n support feature
+     * @param {Context & { i18nGroups: I18nGroup[], document: Vscode.TextDocument }} context
+     * @returns {I18nGroup[] | Promise<I18nGroup[]>}
+     */
+    checkI18n({ i18nGroups, document, _ }) {
+        if (_.endsWith(document.uri.fsPath, 'php')) return [];
+        return i18nGroups.filter(({ key }) => _.includes(key, '_'));
+    },
 };
