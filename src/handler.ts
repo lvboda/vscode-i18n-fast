@@ -3,17 +3,18 @@ import { isNil, max, flatMapDeep, countBy } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
+import { SupportType } from './types';
+import Hook from './hook';
+import I18n from './i18n';
 import localize from './localize';
 import { showMessage } from './tips';
 import { getConfig } from './config';
 import { asyncInvokeWithErrorHandler } from './error';
 import { COMMAND_CONVERT_KEY, PLUGIN_NAME } from './constant';
-import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading } from './utils';
+import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading, checkSupportType } from './utils';
 
 import type { TextEditor, DecorationOptions } from 'vscode';
 import type { ConvertGroup, I18nGroup } from './types';
-import type Hook from './hook';
-import type I18n from './i18n';
 
 const i18nKeyConflictDecorationType = window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 0, 0, 0.5)' });
 const i18nKeyDecorationType = window.createTextEditorDecorationType({
@@ -48,7 +49,7 @@ const getI18nKeyByPicker = async (matchedGroups: I18nGroup[]) => {
     return res?.key;
 }
 
-export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
+export const createOnCommandConvertHandler = () => {
     const handler = async (groups?: ConvertGroup[]) => {
         const editor = window.activeTextEditor;
 
@@ -62,14 +63,14 @@ export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
         let convertGroups: ConvertGroup[] = groups || editor.selections.map((selection) => ({ i18nValue: document.getText(selection), range: selection }));
 
         if (!convertGroups.length) {
-            convertGroups.push(...await hook.match({ document }));
+            convertGroups.push(...await Hook.getInstance().match({ document }));
 
             if (getConfig().autoMatchChinese) {
                 convertGroups.push(...matchChinese(document));
             }
         }
 
-        const i18nGroups = i18n.getI18nGroups();
+        const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
         convertGroups = await Promise.all(convertGroups.map(async (group) => {
             group.type = 'new';
@@ -120,9 +121,9 @@ export const createOnCommandConvertHandler = (hook: Hook, i18n: I18n) => {
             }
         }));
 
-        convertGroups = await hook.convert({ convertGroups, document });
+        convertGroups = await Hook.getInstance().convert({ convertGroups, document });
 
-        await hook.write({ convertGroups, document });
+        await Hook.getInstance().write({ convertGroups, document });
     };
 
     return asyncInvokeWithErrorHandler(handler);
@@ -163,16 +164,43 @@ export const createOnCommandUndoHandler = () => {
     return asyncInvokeWithErrorHandler(handler);
 }
 
-export const createOnDidChangeAddDecorationHandler = (i18n: I18n) => {
+const genRenderOptions = ({ value, valueAST, renderOption }: I18nGroup) => {
+    if (isNil(value) && isNil(valueAST)) return;
+    if (renderOption) return renderOption;
+
+    return {
+        after: {
+            contentText: truncateByDisplayWidth(valueAST ? safeCall(AST2readableStr, [valueAST], () => value) : value)
+        }
+    };
+}
+
+const genHoverMessage = ({ value, valueAST, filePath, line, hoverMessage }: I18nGroup) => {
+    if (isNil(value) && isNil(valueAST)) return;
+    if (hoverMessage) return hoverMessage;
+
+    const hm = new MarkdownString;
+    hm.appendMarkdown(`**[${PLUGIN_NAME}]**\n\n`);
+    hm.appendCodeblock(valueAST ? safeCall(AST2formattedStr, [valueAST], () => value) : value, 'plaintext');
+
+    if (!isNil(filePath)) {
+        const legalLine = max([line, 0]) || 0;
+        hm.appendMarkdown(`[${workspace.asRelativePath(filePath, false)}${isNil(line) ? '' : `:${legalLine}`}](${Uri.parse(filePath)}#${legalLine})`);
+    }
+
+    return hm;
+}
+
+export const createOnDidChangeAddDecorationHandler = () => {
     const handler = async (editor?: TextEditor) => {
         if (!editor?.document) return;
         // 排除掉 i18n 文件
         const { i18nFilePattern } = getConfig();
         if (!i18nFilePattern || !workspace.getWorkspaceFolder(editor.document.uri) || !!match([workspace.asRelativePath(editor.document.uri, false)], i18nFilePattern).length) return;
 
-        const i18nGroups = i18n.getI18nGroups();
+        const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
-        const decorationOptions = flatMapDeep(editor.visibleRanges, ({ start, end }) => {
+        const matchedI18nGroups = flatMapDeep(editor.visibleRanges, ({ start, end }) => {
             // 扩容可见区域
             const lineCount = end.line - start.line;
             const deltaVisibleRange = new Range(
@@ -183,28 +211,33 @@ export const createOnDidChangeAddDecorationHandler = (i18n: I18n) => {
             return (new AhoCorasick(i18nGroups.map(({ key }) => key)))
                 .matchInText(editor.document.getText(deltaVisibleRange))
                 .sort((a, b) => b.keyword.length - a.keyword.length)
-                .reduce<DecorationOptions[]>((pre, { keyword, begin, end }) => {
-                    const { key, value, valueAST, filePath, line } = i18nGroups.find(({ key }) => key === keyword) || {};
-                    const legalLine = max([line, 0]) || 0;
-                    if (!key || !value) return pre;
+                .reduce<I18nGroup[]>((pre, { keyword, begin, end }) => {
+                    const group = i18nGroups.find(({ key }) => key === keyword);
+                    if (!group) return pre;
 
-                    const decorationText = valueAST ? safeCall(AST2readableStr, [valueAST], () => value) : value;
-                    const contentText = truncateByDisplayWidth(decorationText);
                     const offset = editor.document.offsetAt(deltaVisibleRange.start);
                     const range = new Range(editor.document.positionAt(begin + offset), editor.document.positionAt(end + offset));
+
                     if (processedRanges.some((processedRange) => !!range.intersection(processedRange)) || !range.isSingleLine) return pre;
                     processedRanges.push(range);
 
-                    const hoverMessage = new MarkdownString;
-                    hoverMessage.appendMarkdown(`**[${PLUGIN_NAME}]**\n\n`);
-                    hoverMessage.appendCodeblock(valueAST ? safeCall(AST2formattedStr, [valueAST], () => value) : value, 'plaintext')
-                    filePath && hoverMessage.appendMarkdown(`[${workspace.asRelativePath(filePath, false)}${isNil(line) ? '' : `:${legalLine}`}](${Uri.parse(filePath)}#${legalLine})`);
-
-                    return [...pre, { range, hoverMessage, renderOptions: { after: { contentText } } }];
+                    return [...pre, { ...group, range }];
                 }, []);
         });
 
-        editor.setDecorations(i18nKeyDecorationType, decorationOptions);
+        editor.setDecorations(
+            i18nKeyDecorationType,
+            (await Hook.getInstance().checkI18n({ i18nGroups: matchedI18nGroups, document: editor.document })).reduce<DecorationOptions[]>((pre, cur) => {
+                if (!cur.range) return pre;
+
+                const supportType = cur.supportType ?? SupportType.All;
+                return [...pre, {
+                    range: cur.range,
+                    renderOptions: checkSupportType(SupportType.Decoration, supportType) ? genRenderOptions(cur) : void 0,
+                    hoverMessage: checkSupportType(SupportType.HoverMessage, supportType) ? genHoverMessage(cur) : void 0,
+                }]
+            }, [])
+        );
     }
     return asyncInvokeWithErrorHandler(handler);
 }

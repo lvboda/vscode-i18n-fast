@@ -6,6 +6,7 @@ import { parse as parseMessageFormat, TYPE, isArgumentElement, isSelectElement, 
 import { isSupported, convertToPinyin } from 'tiny-pinyin';
 import stringWidth from 'string-width';
 
+import { SupportType } from './types';
 import { showStatusBar, hideStatusBar } from './tips';
 
 import type { TextDocument } from 'vscode';
@@ -399,4 +400,9 @@ export const setLoading = (loading: boolean, text = ' $(loading~spin) generating
   } else {
     hideStatusBar();
   }
+}
+
+export const checkSupportType = (checkType: SupportType, type?: SupportType) => {
+  if (!type) return false;
+  return (type & checkType) !== 0;
 }

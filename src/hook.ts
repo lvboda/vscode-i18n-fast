@@ -6,6 +6,7 @@ import * as uuid from 'uuid';
 import * as babelParser from '@babel/parser';
 import traverse from '@babel/traverse';
 
+import I18n from './i18n';
 import { getConfig } from './config';
 import { showMessage } from './tips';
 import { FILE_IGNORE } from './constant';
@@ -14,7 +15,6 @@ import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, ge
 
 import type { TextDocument, Uri } from 'vscode'
 import type { ConvertGroup, I18nGroup } from './types';
-import type I18n from './i18n';
 
 type WorkspaceHook = Map<string, Record<string, (context: Record<string, any>) => any>>;
 
@@ -51,11 +51,11 @@ class Hook {
         this.hookMap.set(workspaceKey, require(path));
     }
 
-    async init(i18n: I18n) {
-        return await this.reload(i18n);
+    async init() {
+        return await this.reload();
     }
 
-    async reload(i18n: I18n, hookFilePattern?: string) {
+    async reload(hookFilePattern?: string) {
         hookFilePattern = hookFilePattern || getConfig().hookFilePattern;
         const workspaceKey = getWorkspaceKey();
         if (!workspaceKey) return;
@@ -82,7 +82,7 @@ class Hook {
                         break;
                 }
 
-                await i18n.reload(this);
+                await I18n.getInstance().reload();
             }));
         } catch(error: any) {
             showMessage('warn', `<loadHook error> ${error?.stack}`);
@@ -99,7 +99,7 @@ class Hook {
             uuid,
             _: lodash,
             vscode,
-            hook: this,
+            hook: Hook.getInstance(),
             babel: { ...babelParser, traverse },
             convert2pinyin,
             isInJsxElement,
@@ -150,6 +150,10 @@ class Hook {
 
     async matchI18n(context: { i18nFileUri: Uri }) {
         return await this.call<I18nGroup[]>('matchI18n', context, []);
+    }
+
+    async checkI18n(context: { i18nGroups: I18nGroup[], document: TextDocument }) {
+        return await this.call<I18nGroup[]>('checkI18n', context, context.i18nGroups);
     }
 }
 

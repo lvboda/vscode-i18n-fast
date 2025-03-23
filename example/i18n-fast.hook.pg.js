@@ -1,3 +1,5 @@
+const AIGC_API = ''; // your aigc api
+
 /**
  * i18n-fast hook
  * - Use CommonJS
@@ -147,7 +149,7 @@ ${JSON.stringify(inputs, null, 2)}
 ### Reference Examples:
 ${examples.map(e => `[File] ${e.path}\n[Keys]\n${Object.entries(e.map).map(([k, v]) => `${k} = ${v}`).join('\n')}`).join('\n\n')}
 `;
-    const res = await (await fetch('http://10.0.2.206:8003/api/v1/generate/completion', {
+    const res = await (await fetch(AIGC_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -298,5 +300,15 @@ module.exports = {
                     return hasKey;
                 }) + 1,
             }));
+    },
+
+    /**
+     * check i18n support feature
+     * @param {Context & { i18nGroups: I18nGroup[], document: Vscode.TextDocument }} context
+     * @returns {I18nGroup[] | Promise<I18nGroup[]>}
+     */
+    checkI18n({ i18nGroups, document, _ }) {
+        if (_.endsWith(document.uri.fsPath, 'php')) return [];
+        return i18nGroups.filter(({ key }) => _.includes(key, '_'));
     },
 };
