@@ -1,6 +1,7 @@
 import { workspace } from 'vscode';
 
 import { PLUGIN_NAME } from "./constant";
+import { ConflictPolicy } from './types/enums';
 
 import type { WorkspaceConfiguration } from "vscode";
 
@@ -8,14 +9,14 @@ type Config = {
     hookFilePattern: string;
     i18nFilePattern: string;
     autoMatchChinese: boolean;
-    conflictPolicy: 'reuse' | 'ignore' | 'picker' | 'smart';
+    conflictPolicy: ConflictPolicy;
 }
 
 const defaultConfig: Config = {
     hookFilePattern: '.vscode/i18n-fast.hook.js',
     i18nFilePattern: '',
     autoMatchChinese: true,
-    conflictPolicy: 'smart',
+    conflictPolicy: ConflictPolicy.Smart,
 };
 
 const genConfig = (config: WorkspaceConfiguration) => {

@@ -14,6 +14,7 @@ import Watcher, { WATCH_STATE } from './watcher';
 import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getAST, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
 
 import type { TextDocument, Uri } from 'vscode'
+import type { MatchType } from './types/enums';
 import type { ConvertGroup, I18nGroup } from './types';
 
 type WorkspaceHook = Map<string, Record<string, (context: Record<string, any>) => any>>;
@@ -148,12 +149,12 @@ class Hook {
         return await this.call<boolean>('write', context, false);
     }
 
-    async matchI18n(context: { i18nFileUri: Uri }) {
-        return await this.call<I18nGroup[]>('matchI18n', context, []);
+    async collectI18n(context: { i18nFileUri: Uri }) {
+        return await this.call<I18nGroup[]>('collectI18n', context, []);
     }
 
-    async checkI18n(context: { i18nGroups: I18nGroup[], document: TextDocument }) {
-        return await this.call<I18nGroup[]>('checkI18n', context, context.i18nGroups);
+    async matchI18n(context: { type: MatchType, i18nGroups: I18nGroup[], document: TextDocument }) {
+        return await this.call<I18nGroup[]>('matchI18n', context, context.i18nGroups);
     }
 }
 
