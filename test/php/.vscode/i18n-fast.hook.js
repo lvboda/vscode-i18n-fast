@@ -20,7 +20,7 @@ const genI18nKey = require('./gen-i18n-key');
 */
 
 /**
- * @typedef {Object} ConvertGroup
+ * @typedef {Object} ConvertGroup - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/types/index.ts}
  * @property {string} i18nValue - i18n value
  * @property {string} [matchedText] - original matched text
  * @property {Vscode.Range} [range] - matched range see {@link https://code.visualstudio.com/api/references/vscode-api#Range}
@@ -31,7 +31,7 @@ const genI18nKey = require('./gen-i18n-key');
  */
 
 /**
- * @typedef {Object} I18nGroup
+ * @typedef {Object} I18nGroup - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/types/index.ts}
  * @property {string} key - i18n key
  * @property {string} value - i18n value
  * @property {import('@formatjs/icu-messageformat-parser').MessageFormatElement[]} [valueAST] - value AST see {@link https://www.npmjs.com/package/@formatjs/icu-messageformat-parser}
@@ -45,6 +45,12 @@ const genI18nKey = require('./gen-i18n-key');
  */
 
 /**
+ * @typedef {Object} I18n - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/i18n.ts}
+ * @property {(workspaceKey?: string) => Map<string, I18nGroup[]> | Map<string, Map<string, I18nGroup[]>>} get
+ * @property {(workspaceKey?: string) => I18nGroup[]} getI18nGroups
+*/
+
+/**
  * some tools
  * @typedef {Object} Context
  * @property {Vscode} vscode
@@ -54,6 +60,7 @@ const genI18nKey = require('./gen-i18n-key');
  * @property {import('lodash')} _ - see {@link https://www.npmjs.com/package/lodash}
  * @property {import('@babel/parser') & { traverse: import('@babel/traverse') }} babel - see {@link https://www.npmjs.com/package/@babel/parser}, {@link https://www.npmjs.com/package/@babel/traverse}
  * @property {typeof module.exports} hook
+ * @property {I18n} i18n
  * @property {(str: string, opt: { separator?: string, lowerCase?: boolean, limit?: number, forceSplit?: boolean }) => string} convert2pinyin - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {(documentText: string, start: number, end: number) => boolean} isInJsxElement - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {(documentText: string, start: number, end: number) => boolean} isInJsxAttribute - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
@@ -127,6 +134,10 @@ module.exports = {
         let needCreateGroups = convertGroups.filter(({ type }) => type === 'new');
         if (needCreateGroups.length === 0) return;
 
+        if (needCreateGroups.some(({ i18nValue }) => i18nValue.includes('\n'))) {
+            showMessage('warn', '<write hook> i18n value should not contain line breaks, please check.');
+        }
+
         setLoading(true);
         const i18nFilePaths = (await vscode.workspace.findFiles(getConfig().i18nFilePattern)).map(({ fsPath }) => fsPath);
         const toBeWrittenI18nFilePath = _.sample(i18nFilePaths.filter((path) => /erp_lang\.php/.test(path)));
@@ -180,24 +191,25 @@ module.exports = {
     async collectI18n({ i18nFileUri, vscode }) {
         const i18nFileContent = (await vscode.workspace.fs.readFile(i18nFileUri)).toString();
         const i18nFileContentLines = i18nFileContent.split('\n');
-        const i18nMap = new Function(`
-            const $lang = {};
-            ${i18nFileContent.replace('<?php', '')}
-            return $lang;
-        `)();
+        
+        const regex = /\$lang\[("|')(.*?)\1\]\s*=\s*("|')(.*?)\3;/g;
+        const i18nGroups = [];
         const matchedIndexSet = new Set();
-        return Object.entries(i18nMap)
-            .sort(([aKey], [bKey]) => bKey.length - aKey.length)
-            .map(([key, value]) => ({
-                key,
-                value,
-                line: i18nFileContentLines.findIndex((line, index) => {
-                    if (matchedIndexSet.has(index)) return false;
-                    const hasKey = new RegExp(key).test(line);
-                    if (hasKey) matchedIndexSet.add(index);
-                    return hasKey;
-                }) + 1,
-            }));
+        let match;
+        while ((match = regex.exec(i18nFileContent)) !== null) {
+            const key = match?.[2];
+            const value = match?.[4];
+            const line = i18nFileContentLines.findIndex((line, index) => {
+                if (matchedIndexSet.has(index)) return false;
+                const hasKey = new RegExp(key).test(line);
+                if (hasKey) matchedIndexSet.add(index);
+                return hasKey;
+            }) + 1;
+
+            if (key && value) i18nGroups.push({ key, value, line });
+        }
+
+        return i18nGroups;
     },
 
     /**
