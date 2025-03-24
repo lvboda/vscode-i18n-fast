@@ -207,13 +207,11 @@ module.exports = {
     convert({ convertGroups, document, vscode, _, safeCall, isInJsxElement, isInJsxAttribute, qs, uuid }) {
         const documentText = document.getText();
         return convertGroups.map((group) => {
-            // 解析自定义参数
             const [i18nValue = group.i18nValue, paramsStr = ''] = group.i18nValue.split('?i');
             const params = { ...qs.parse(paramsStr) };
 
             const i18nKey = group.type === 'new' ? `i18n-fast-loading-${uuid.v4()}` : group.i18nKey;
 
-            // 生成 overwriteText
             const startIndex = document.offsetAt(group.range.start);
             const endIndex = document.offsetAt(group.range.end);
             let inJsxOrJsxAttribute = false;
@@ -243,7 +241,6 @@ module.exports = {
 
         let needCreateGroups = convertGroups.filter(({ type }) => type === 'new');
         if (needCreateGroups.length === 0) return;
-        const documentText = document.getText();
 
         setLoading(true);
         const i18nFilePaths = (await vscode.workspace.findFiles(getConfig().i18nFilePattern)).map(({ fsPath }) => fsPath);
@@ -255,7 +252,7 @@ module.exports = {
                     const { i18nKey, isCommon } = generated.find(({ originalText }) => originalText === group.i18nValue) || {};
                     if (i18nKey) {
                         group.overwriteI18nKeyRanges = [];
-                        [...documentText.matchAll(new RegExp(group.i18nKey, 'g'))].forEach((matched) => {
+                        [...document.getText().matchAll(new RegExp(group.i18nKey, 'g'))].forEach((matched) => {
                             if (!_.isNil(matched.index)) {
                                 const start = document.positionAt(matched.index);
                                 const end = document.positionAt(matched.index + group.i18nKey.length);
@@ -269,6 +266,7 @@ module.exports = {
                 })
                 .filter(({ i18nKey, overwriteI18nKeyRanges }) => !_.isNil(i18nKey) && overwriteI18nKeyRanges.length > 0);
 
+            if (!needCreateGroups.length) return;
             await writeFileByEditor(document.uri, needCreateGroups.map(({ i18nKey, overwriteI18nKeyRanges }) => overwriteI18nKeyRanges.map((range) => ({ range, content: i18nKey }))).flat());
 
             for (const groups of _.partition(needCreateGroups, 'isCommon')) {
