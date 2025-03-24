@@ -25,14 +25,14 @@ export async function activate(context: ExtensionContext) {
 		commands.registerCommand(COMMAND_PASTE_KEY, createOnCommandPasteHandler()),
 		commands.registerCommand(COMMAND_UNDO_KEY, createOnCommandUndoHandler()),
 		window.onDidChangeActiveTextEditor((editor) => onDidChangeAddDecorationHandler(editor)),
-		workspace.onDidChangeTextDocument(() => debouncedOnDidChangeAddDecorationHandler(window.activeTextEditor)),
 		window.onDidChangeTextEditorVisibleRanges(() => debouncedOnDidChangeAddDecorationHandler(window.activeTextEditor)),
+		workspace.onDidChangeTextDocument(() => debouncedOnDidChangeAddDecorationHandler(window.activeTextEditor)),
 		workspace.onDidChangeConfiguration(async (event) => {
 			if ([`${PLUGIN_NAME}.hookFilePattern`, `${PLUGIN_NAME}.i18nFilePattern`].some((key) => event.affectsConfiguration(key))) {
 				await Hook.getInstance().reload();
 				await I18n.getInstance().reload();
 			}
-		}),
+		})
 	);
 }
 

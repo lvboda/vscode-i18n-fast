@@ -3,13 +3,13 @@ import { isNil, max, flatMapDeep, countBy } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
-import { SupportType } from './types';
 import Hook from './hook';
 import I18n from './i18n';
 import localize from './localize';
 import { showMessage } from './tips';
 import { getConfig } from './config';
 import { asyncInvokeWithErrorHandler } from './error';
+import { MatchType, SupportType, ConvertType, ConflictPolicy } from './types/enums';
 import { COMMAND_CONVERT_KEY, PLUGIN_NAME } from './constant';
 import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading, checkSupportType } from './utils';
 
@@ -73,7 +73,7 @@ export const createOnCommandConvertHandler = () => {
         const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
         convertGroups = await Promise.all(convertGroups.map(async (group) => {
-            group.type = 'new';
+            group.type = ConvertType.New;
             // 匹配 range
             if (!group.range && group.matchedText) {
                 let index = documentText.indexOf(group.matchedText);
@@ -100,11 +100,11 @@ export const createOnCommandConvertHandler = () => {
 
             const { conflictPolicy } = getConfig();
             switch(conflictPolicy) {
-                case 'ignore':
+                case ConflictPolicy.Ignore:
                     return group;
-                case 'picker': 
-                case 'smart':
-                    if (matchedGroups.length === 1 && conflictPolicy === 'smart') return { ...group, i18nKey: matchedGroups[0].key, type: 'exist' };
+                case ConflictPolicy.Picker: 
+                case ConflictPolicy.Smart:
+                    if (matchedGroups.length === 1 && conflictPolicy === ConflictPolicy.Smart) return { ...group, i18nKey: matchedGroups[0].key, type: ConvertType.Exist };
 
                     editor.revealRange(group.range);
                     editor.setDecorations(i18nKeyConflictDecorationType, [{
@@ -114,10 +114,10 @@ export const createOnCommandConvertHandler = () => {
                     }]);
                     const i18nKey = await getI18nKeyByPicker(matchedGroups);
                     editor.setDecorations(i18nKeyConflictDecorationType, []);
-                    return { ...group, i18nKey: i18nKey || group.i18nKey, type: !!i18nKey ? 'exist' : 'new' };
-                case 'reuse':
+                    return { ...group, i18nKey: i18nKey || group.i18nKey, type: !!i18nKey ? ConvertType.Exist : ConvertType.New };
+                case ConflictPolicy.Reuse:
                 default:
-                    return { ...group, i18nKey: matchedGroups[0].key, type: 'exist' };
+                    return { ...group, i18nKey: matchedGroups[0].key, type: ConvertType.Exist };
             }
         }));
 
@@ -227,7 +227,7 @@ export const createOnDidChangeAddDecorationHandler = () => {
 
         editor.setDecorations(
             i18nKeyDecorationType,
-            (await Hook.getInstance().checkI18n({ i18nGroups: matchedI18nGroups, document: editor.document })).reduce<DecorationOptions[]>((pre, cur) => {
+            (await Hook.getInstance().matchI18n({ type: MatchType.Document, i18nGroups: matchedI18nGroups, document: editor.document })).reduce<DecorationOptions[]>((pre, cur) => {
                 if (!cur.range) return pre;
 
                 const supportType = cur.supportType ?? SupportType.All;

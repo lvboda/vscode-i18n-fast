@@ -6,10 +6,11 @@ import { AhoCorasick } from '@monyone/aho-corasick';
 import Hook from './hook';
 import I18n from './i18n';
 import { getConfig } from './config';
+import { checkSupportType } from './utils';
+import { MatchType, SupportType } from './types/enums';
 
 import type { TextDocumentContentProvider, DefinitionProvider, TextDocument } from 'vscode';
-import { checkSupportType } from './utils';
-import { I18nGroup, SupportType } from './types';
+import type { I18nGroup } from './types';
 
 const genLocationLink = ({ supportType = SupportType.All, range, locationLink, filePath, line = 0 }: I18nGroup) => {
     if (!checkSupportType(SupportType.Jump, supportType) || isNil(range)) return;
@@ -50,7 +51,7 @@ export class I18nJumpProvider implements DefinitionProvider {
         const group = i18nGroups.find(({ key }) => key === matched.keyword);
         if (!group) return;
 
-        return genLocationLink((await Hook.getInstance().checkI18n({ i18nGroups: [{ ...group, range: matched.range }], document }))[0]);
+        return genLocationLink((await Hook.getInstance().matchI18n({ type: MatchType.Document, i18nGroups: [{ ...group, range: matched.range }], document }))[0]);
     }
 }
 
