@@ -20,7 +20,7 @@ const genI18nKey = require('./gen-i18n-key');
 */
 
 /**
- * @typedef {Object} ConvertGroup
+ * @typedef {Object} ConvertGroup - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/types/index.ts}
  * @property {string} i18nValue - i18n value
  * @property {string} [matchedText] - original matched text
  * @property {Vscode.Range} [range] - matched range see {@link https://code.visualstudio.com/api/references/vscode-api#Range}
@@ -31,7 +31,7 @@ const genI18nKey = require('./gen-i18n-key');
  */
 
 /**
- * @typedef {Object} I18nGroup
+ * @typedef {Object} I18nGroup - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/types/index.ts}
  * @property {string} key - i18n key
  * @property {string} value - i18n value
  * @property {import('@formatjs/icu-messageformat-parser').MessageFormatElement[]} [valueAST] - value AST see {@link https://www.npmjs.com/package/@formatjs/icu-messageformat-parser}
@@ -45,6 +45,12 @@ const genI18nKey = require('./gen-i18n-key');
  */
 
 /**
+ * @typedef {Object} I18n - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/i18n.ts}
+ * @property {(workspaceKey?: string) => Map<string, I18nGroup[]> | Map<string, Map<string, I18nGroup[]>>} get
+ * @property {(workspaceKey?: string) => I18nGroup[]} getI18nGroups
+*/
+
+/**
  * some tools
  * @typedef {Object} Context
  * @property {Vscode} vscode
@@ -54,6 +60,7 @@ const genI18nKey = require('./gen-i18n-key');
  * @property {import('lodash')} _ - see {@link https://www.npmjs.com/package/lodash}
  * @property {import('@babel/parser') & { traverse: import('@babel/traverse') }} babel - see {@link https://www.npmjs.com/package/@babel/parser}, {@link https://www.npmjs.com/package/@babel/traverse}
  * @property {typeof module.exports} hook
+ * @property {I18n} i18n
  * @property {(str: string, opt: { separator?: string, lowerCase?: boolean, limit?: number, forceSplit?: boolean }) => string} convert2pinyin - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {(documentText: string, start: number, end: number) => boolean} isInJsxElement - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {(documentText: string, start: number, end: number) => boolean} isInJsxAttribute - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
@@ -122,7 +129,6 @@ module.exports = {
 
         let needCreateGroups = convertGroups.filter(({ type }) => type === 'new');
         if (needCreateGroups.length === 0) return;
-        const documentText = document.getText();
 
         setLoading(true);
         genI18nKey(
@@ -134,7 +140,7 @@ module.exports = {
                     const { i18nKey, path } = generated.find(({ originalText }) => originalText === group.i18nValue) || {};
                     if (i18nKey) {
                         group.overwriteI18nKeyRanges = [];
-                        [...documentText.matchAll(new RegExp(group.i18nKey, 'g'))].forEach((matched) => {
+                        [...document.getText().matchAll(new RegExp(group.i18nKey, 'g'))].forEach((matched) => {
                             if (!_.isNil(matched.index)) {
                                 const start = document.positionAt(matched.index);
                                 const end = document.positionAt(matched.index + group.i18nKey.length);
@@ -147,7 +153,8 @@ module.exports = {
                     return group;
                 })
                 .filter(({ i18nKey, overwriteI18nKeyRanges }) => !_.isNil(i18nKey) && overwriteI18nKeyRanges.length > 0);
-
+                
+            if (!needCreateGroups.length) return;
             await writeFileByEditor(document.uri, needCreateGroups.map(({ i18nKey, overwriteI18nKeyRanges }) => overwriteI18nKeyRanges.map((range) => ({ range, content: i18nKey }))).flat());
 
             for (const [path, groups] of Object.entries(_.groupBy(needCreateGroups, 'i18nFilePath'))) {
