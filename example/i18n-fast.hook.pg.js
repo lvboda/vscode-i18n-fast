@@ -249,6 +249,10 @@ module.exports = {
         let needCreateGroups = convertGroups.filter(({ type }) => type === 'new');
         if (needCreateGroups.length === 0) return;
 
+        if (needCreateGroups.some(({ i18nValue }) => i18nValue.includes('\n'))) {
+            showMessage('warn', '<write hook> i18n value should not contain line breaks, please check.');
+        }
+
         setLoading(true);
         const i18nFilePaths = (await vscode.workspace.findFiles(getConfig().i18nFilePattern)).map(({ fsPath }) => fsPath);
         const toBeWrittenI18nFilePath = _.sample(i18nFilePaths.filter((path) => /erp_lang\.php/.test(path)));
@@ -302,24 +306,25 @@ module.exports = {
     async collectI18n({ i18nFileUri, vscode }) {
         const i18nFileContent = (await vscode.workspace.fs.readFile(i18nFileUri)).toString();
         const i18nFileContentLines = i18nFileContent.split('\n');
-        const i18nMap = new Function(`
-            const $lang = {};
-            ${i18nFileContent.replace('<?php', '')}
-            return $lang;
-        `)();
+        
+        const regex = /\$lang\[("|')(.*?)\1\]\s*=\s*("|')(.*?)\3;/g;
+        const i18nGroups = [];
         const matchedIndexSet = new Set();
-        return Object.entries(i18nMap)
-            .sort(([aKey], [bKey]) => bKey.length - aKey.length)
-            .map(([key, value]) => ({
-                key,
-                value,
-                line: i18nFileContentLines.findIndex((line, index) => {
-                    if (matchedIndexSet.has(index)) return false;
-                    const hasKey = new RegExp(key).test(line);
-                    if (hasKey) matchedIndexSet.add(index);
-                    return hasKey;
-                }) + 1,
-            }));
+        let match;
+        while ((match = regex.exec(i18nFileContent)) !== null) {
+            const key = match?.[2];
+            const value = match?.[4];
+            const line = i18nFileContentLines.findIndex((line, index) => {
+                if (matchedIndexSet.has(index)) return false;
+                const hasKey = new RegExp(key).test(line);
+                if (hasKey) matchedIndexSet.add(index);
+                return hasKey;
+            }) + 1;
+
+            if (key && value) i18nGroups.push({ key, value, line });
+        }
+
+        return i18nGroups;
     },
 
     /**
