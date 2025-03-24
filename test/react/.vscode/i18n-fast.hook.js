@@ -122,7 +122,6 @@ module.exports = {
 
         let needCreateGroups = convertGroups.filter(({ type }) => type === 'new');
         if (needCreateGroups.length === 0) return;
-        const documentText = document.getText();
 
         setLoading(true);
         genI18nKey(
@@ -134,7 +133,7 @@ module.exports = {
                     const { i18nKey, path } = generated.find(({ originalText }) => originalText === group.i18nValue) || {};
                     if (i18nKey) {
                         group.overwriteI18nKeyRanges = [];
-                        [...documentText.matchAll(new RegExp(group.i18nKey, 'g'))].forEach((matched) => {
+                        [...document.getText().matchAll(new RegExp(group.i18nKey, 'g'))].forEach((matched) => {
                             if (!_.isNil(matched.index)) {
                                 const start = document.positionAt(matched.index);
                                 const end = document.positionAt(matched.index + group.i18nKey.length);
@@ -147,7 +146,8 @@ module.exports = {
                     return group;
                 })
                 .filter(({ i18nKey, overwriteI18nKeyRanges }) => !_.isNil(i18nKey) && overwriteI18nKeyRanges.length > 0);
-
+                
+            if (!needCreateGroups.length) return;
             await writeFileByEditor(document.uri, needCreateGroups.map(({ i18nKey, overwriteI18nKeyRanges }) => overwriteI18nKeyRanges.map((range) => ({ range, content: i18nKey }))).flat());
 
             for (const [path, groups] of Object.entries(_.groupBy(needCreateGroups, 'i18nFilePath'))) {
