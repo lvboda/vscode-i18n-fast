@@ -73,9 +73,15 @@ export default class I18n {
         }));
     }
 
+    get(): WorkspaceMap;
+    get(workspaceKey: string): PathMap;
+    get(workspaceKey = getWorkspaceKey()) {
+        return workspaceKey ? this.i18nMap.get(workspaceKey) : this.i18nMap;
+    }
+
     getI18nGroups(workspaceKey = getWorkspaceKey()): I18nGroup[] {
         if (!workspaceKey) return [];
-        return Array.from(this.i18nMap.get(workspaceKey)?.entries() || [])
+        return Array.from(this.get(workspaceKey)?.entries() || [])
             .map(([filePath, groups]) => groups?.map((item) => ({ filePath, ...item })) || [])
             .flat();
     }

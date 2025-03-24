@@ -18,7 +18,7 @@
 */
 
 /**
- * @typedef {Object} ConvertGroup
+ * @typedef {Object} ConvertGroup - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/types/index.ts}
  * @property {string} i18nValue - i18n value
  * @property {string} [matchedText] - original matched text
  * @property {Vscode.Range} [range] - matched range see {@link https://code.visualstudio.com/api/references/vscode-api#Range}
@@ -29,7 +29,7 @@
  */
 
 /**
- * @typedef {Object} I18nGroup
+ * @typedef {Object} I18nGroup - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/types/index.ts}
  * @property {string} key - i18n key
  * @property {string} value - i18n value
  * @property {import('@formatjs/icu-messageformat-parser').MessageFormatElement[]} [valueAST] - value AST see {@link https://www.npmjs.com/package/@formatjs/icu-messageformat-parser}
@@ -43,6 +43,12 @@
  */
 
 /**
+ * @typedef {Object} I18n - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/i18n.ts}
+ * @property {(workspaceKey?: string) => Map<string, I18nGroup[]> | Map<string, Map<string, I18nGroup[]>>} get
+ * @property {(workspaceKey?: string) => I18nGroup[]} getI18nGroups
+*/
+
+/**
  * some tools
  * @typedef {Object} Context
  * @property {Vscode} vscode
@@ -52,6 +58,7 @@
  * @property {import('lodash')} _ - see {@link https://www.npmjs.com/package/lodash}
  * @property {import('@babel/parser') & { traverse: import('@babel/traverse') }} babel - see {@link https://www.npmjs.com/package/@babel/parser}, {@link https://www.npmjs.com/package/@babel/traverse}
  * @property {typeof module.exports} hook
+ * @property {I18n} i18n
  * @property {(str: string, opt: { separator?: string, lowerCase?: boolean, limit?: number, forceSplit?: boolean }) => string} convert2pinyin - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {(documentText: string, start: number, end: number) => boolean} isInJsxElement - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {(documentText: string, start: number, end: number) => boolean} isInJsxAttribute - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
