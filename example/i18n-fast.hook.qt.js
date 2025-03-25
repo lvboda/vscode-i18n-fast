@@ -331,7 +331,21 @@ module.exports = {
      * @param {Context & { type: MatchType, i18nGroups: I18nGroup[], document: Vscode.TextDocument }} context
      * @returns {I18nGroup[] | Promise<I18nGroup[]>}
      */
-    matchI18n({ i18nGroups, _ }) {
-        return i18nGroups.filter(({ key }) => _.includes(key, '.'));
+    matchI18n({ i18nGroups, document, vscode, _ }) {
+        return i18nGroups.map((group) => {
+            if (!_.includes(group.key, '.')) {
+                group.supportType = 0;
+                return group;
+            }
+
+            const start = document.getText(new vscode.Range(new vscode.Position(group.range.start.line, group.range.start.character - 1), group.range.start));
+            const end = document.getText(new vscode.Range(group.range.end, new vscode.Position(group.range.end.line, group.range.end.character + 1)));
+
+            if (![start, end].every((i) => ['"', "'", '`'].includes(i))) {
+                group.supportType = 7&~1;
+            }
+
+            return group;
+        });
     },
 };
