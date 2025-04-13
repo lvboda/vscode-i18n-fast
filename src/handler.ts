@@ -60,15 +60,24 @@ export const createOnCommandConvertHandler = () => {
         const documentText = document.getText();
 
         // 参数 > 选中 > 当前文件的自定义匹配 > 当前文件的中文匹配
-        let convertGroups: ConvertGroup[] = groups || editor.selections.map((selection) => ({ i18nValue: document.getText(selection), range: selection }));
+        let convertGroups = groups || editor.selections.reduce<ConvertGroup[]>((pre, cur) => {
+            const i18nValue = document.getText(cur);
+            if (!cur.isEmpty && i18nValue) {
+                pre.push({ i18nValue, range: cur });
+            }
+            return pre;
+        }, []);
 
         if (!convertGroups.length) {
             convertGroups.push(...await Hook.getInstance().match({ document }));
 
-            if (getConfig().autoMatchChinese) {
-                convertGroups.push(...matchChinese(document));
-            }
+            // TODO 这里暂时不放开 需要完善
+            // if (getConfig().autoMatchChinese) {
+            //     convertGroups.push(...matchChinese(document));
+            // }
         }
+
+        if (convertGroups.every(({ i18nValue }) => !i18nValue.trim())) return;
 
         const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];

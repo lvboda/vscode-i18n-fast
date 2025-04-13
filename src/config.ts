@@ -5,6 +5,13 @@ import { ConflictPolicy } from './types/enums';
 
 import type { WorkspaceConfiguration } from "vscode";
 
+// package.json ignore
+// "i18n-fast.autoMatchChinese": {
+//     "description": "%package.configuration.autoMatchChinese%",
+//     "type": "boolean",
+//     "default": true
+// },
+
 type Config = {
     hookFilePattern: string;
     i18nFilePattern: string;
