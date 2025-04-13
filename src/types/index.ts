@@ -1,6 +1,6 @@
 import type { Range, DecorationOptions, Definition, DefinitionLink } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
-import type { SupportType, ConvertType } from './enums';
+import type { SupportType, ConvertType, ConflictPolicy } from './enums';
 
 export type ConvertGroup = {
     i18nValue: string;
@@ -24,3 +24,10 @@ export type I18nGroup = {
     hoverMessage?: DecorationOptions['hoverMessage'];
     locationLink?: Definition | DefinitionLink[];
 };
+
+export type Config = {
+    hookFilePattern: string;
+    i18nFilePattern: string;
+    autoMatchChinese: boolean;
+    conflictPolicy: ConflictPolicy;
+}

@@ -1,6 +1,6 @@
 <div align="center">
 
-[![](./images/logo.png "logo")](https://github.com/lvboda/vscode-i18n-fast)
+[![](./assets/logo.png "logo")](https://github.com/lvboda/vscode-i18n-fast)
 
 # I18n Fast
 
