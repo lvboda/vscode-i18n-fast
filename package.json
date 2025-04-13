@@ -118,11 +118,6 @@
           "type": "string",
           "default": ""
         },
-        "i18n-fast.autoMatchChinese": {
-          "description": "%package.configuration.autoMatchChinese%",
-          "type": "boolean",
-          "default": true
-        },
         "i18n-fast.conflictPolicy": {
           "description": "%package.configuration.conflictPolicy%",
           "type": "string",
