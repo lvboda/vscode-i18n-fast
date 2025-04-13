@@ -6,6 +6,12 @@ import { ConflictPolicy } from './types/enums';
 import type { WorkspaceConfiguration } from "vscode";
 import type { Config } from './types';
 
+// package.json ignore
+// "i18n-fast.autoMatchChinese": {
+//     "description": "%package.configuration.autoMatchChinese%",
+//     "type": "boolean",
+//     "default": true
+// },
 
 const defaultConfig: Config = {
     hookFilePattern: '.vscode/i18n-fast.hook.js',

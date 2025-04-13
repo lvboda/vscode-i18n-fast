@@ -133,6 +133,7 @@ export const matchChinese = (document: TextDocument) => {
       const current = {
         matchedText: key,
         i18nValue: key,
+        // FIXME 引号导致的定位错误
         range: new Range(document.positionAt(begin), document.positionAt(end))
       };
       if (['"', "'", '`'].includes(documentText[begin]) && documentText[begin] === documentText[end]) {
