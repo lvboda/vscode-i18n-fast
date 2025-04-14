@@ -73,7 +73,7 @@
 - hookFilePattern: hook 文件匹配规则 默认 `.vscode/i18n-fast.hook.js`
 - conflictPolicy: 遇到重复 i18n 时, 如何处理 默认 `smart`
   - reuse: 复用已有 i18n
-  - skip: 略过
+  - ignore: 忽略重复
   - picker: 弹出选择器手动选择
   - smart: 如果匹配到一个 i18n 直接复用，匹配到多个弹出选择器手动选择
 - ~~autoMatchChinese: 是否自动匹配中文 默认 `true`~~
