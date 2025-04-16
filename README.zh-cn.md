@@ -152,9 +152,9 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 
 ### i18n-fast.undo
 
-快捷键：`cmd + option + z` (macOS) / `ctrl + alt + z` (Windows/Linux)
+撤销命令，撤销此次所有文件的写入操作
 
-撤销此次所有文件的写入操作
+快捷键：`cmd + option + z` (macOS) / `ctrl + alt + z` (Windows/Linux)
 
 > 这个命令目前还有些问题，不是很稳定 https://github.com/lvboda/vscode-i18n-fast/issues/4
 

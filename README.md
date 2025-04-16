@@ -6,7 +6,7 @@
 
 [![](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/lvboda/vscode-i18n-fast)  [![](https://badgen.net/github/license/lvboda/vscode-i18n-fast?color=green)](./LICENSE)  [![](https://badgen.net/vs-marketplace/i/lvboda.vscode-i18n-fast?color=red)](https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast)  [![](https://badgen.net/vs-marketplace/v/lvboda.vscode-i18n-fast?color=pink)](https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast)
 
-A hook-driven i18n generation plugin that caters to a variety of internationalization development scenarios.
+A hook-driven i18n plugin that supports diverse development scenarios.
 
 **English** **|** [**简体中文**](./README.zh-cn.md)
 
@@ -152,9 +152,9 @@ The paste command converts text from the clipboard into the i18n format and past
 
 ### i18n-fast.undo
 
-**Shortcut:** `cmd + option + z` (macOS) / `ctrl + alt + z` (Windows/Linux)
+The undo command undoes all file write operations performed in this session.
 
-Undoes all file write operations performed in this session.
+**Shortcut:** `cmd + option + z` (macOS) / `ctrl + alt + z` (Windows/Linux)
 
 > This command currently has some issues and is not very stable. See https://github.com/lvboda/vscode-i18n-fast/issues/4 for details.
 
