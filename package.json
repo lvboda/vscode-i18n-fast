@@ -53,7 +53,8 @@
     "react",
     "ali",
     "react-intl",
-    "国际化 i18n"
+    "国际化 i18n",
+    "internationalization"
   ],
   "engines": {
     "vscode": "^1.73.0"
