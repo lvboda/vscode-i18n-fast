@@ -6,7 +6,7 @@
 
 [![](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/lvboda/vscode-i18n-fast)  [![](https://badgen.net/github/license/lvboda/vscode-i18n-fast?color=green)](./LICENSE)  [![](https://badgen.net/vs-marketplace/i/lvboda.vscode-i18n-fast?color=red)](https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast)  [![](https://badgen.net/vs-marketplace/v/lvboda.vscode-i18n-fast?color=pink)](https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast)
 
-A hook-driven i18n generation plugin that caters to a variety of internationalization development scenarios.
+A hook-driven i18n plugin that supports diverse development scenarios.
 
 **English** **|** [**简体中文**](./README.zh-cn.md)
 
