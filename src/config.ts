@@ -4,6 +4,7 @@ import { PLUGIN_NAME } from "./constant";
 import { ConflictPolicy } from './types/enums';
 
 import type { WorkspaceConfiguration } from "vscode";
+import type { Config } from './types';
 
 // package.json ignore
 // "i18n-fast.autoMatchChinese": {
@@ -12,13 +13,6 @@ import type { WorkspaceConfiguration } from "vscode";
 //     "default": true
 // },
 
-type Config = {
-    hookFilePattern: string;
-    i18nFilePattern: string;
-    autoMatchChinese: boolean;
-    conflictPolicy: ConflictPolicy;
-}
-
 const defaultConfig: Config = {
     hookFilePattern: '.vscode/i18n-fast.hook.js',
     i18nFilePattern: '',
@@ -26,12 +20,12 @@ const defaultConfig: Config = {
     conflictPolicy: ConflictPolicy.Smart,
 };
 
-const genConfig = (config: WorkspaceConfiguration) => {
+const genConfig = (config: WorkspaceConfiguration): Config => {
     return Object.entries(defaultConfig).reduce((pre, [key]) => {
         return { ...pre, [key]: config.get(key) };
     }, defaultConfig);
 }
 
-export const getConfig = () => {
+export const getConfig = (): Config => {
     return genConfig(workspace.getConfiguration(PLUGIN_NAME));
 }

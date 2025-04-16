@@ -1,4 +1,5 @@
 {
+    "package.description": "A hook-driven i18n generation plugin that caters to a variety of internationalization development scenarios.",
     "package.commands.convert": "Convert",
     "package.commands.paste": "Paste",
     "package.commands.undo": "Undo",
