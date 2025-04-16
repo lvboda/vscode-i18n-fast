@@ -1,4 +1,5 @@
 {
+    "package.description": "一个 hook 驱动的 i18n 生成插件，满足多种国际化开发场景。",
     "package.commands.convert": "转换",
     "package.commands.paste": "粘贴",
     "package.commands.undo": "撤销",

@@ -1,7 +1,7 @@
 {
   "name": "vscode-i18n-fast",
   "displayName": "I18n Fast",
-  "description": "",
+  "description": "%package.description%",
   "version": "0.0.7",
   "publisher": "lvboda",
   "author": {
@@ -14,7 +14,7 @@
     "type": "git",
     "url": "https://github.com/lvboda/vscode-i18n-fast.git"
   },
-  "icon": "images/logo.png",
+  "icon": "assets/logo.png",
   "homepage": "https://github.com/lvboda/vscode-i18n-fast/blob/master/README.md",
   "bugs": {
     "url": "https://github.com/lvboda/vscode-i18n-fast/issues"
@@ -53,7 +53,8 @@
     "react",
     "ali",
     "react-intl",
-    "国际化 i18n"
+    "国际化 i18n",
+    "internationalization"
   ],
   "engines": {
     "vscode": "^1.73.0"
