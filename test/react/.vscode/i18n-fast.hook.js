@@ -2,6 +2,7 @@ const genI18nKey = require('./gen-i18n-key');
 
 /**
  * i18n-fast hook
+ * - Node.js runtime
  * - Use CommonJS
  * - Can require other modules
  * - Can return a Promise
