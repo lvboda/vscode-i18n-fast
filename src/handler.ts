@@ -188,16 +188,16 @@ const genHoverMessage = ({ value, valueAST, filePath, line, hoverMessage }: I18n
     if (isNil(value) && isNil(valueAST)) return;
     if (hoverMessage) return hoverMessage;
 
-    const hm = new MarkdownString;
-    hm.appendMarkdown(`**[${PLUGIN_NAME}]**\n\n`);
-    hm.appendCodeblock(valueAST ? safeCall(AST2formattedStr, [valueAST], () => value) : value, 'plaintext');
+    const ms = new MarkdownString;
+    ms.appendMarkdown(`**[${PLUGIN_NAME}]**\n\n`);
+    ms.appendCodeblock(valueAST ? safeCall(AST2formattedStr, [valueAST], () => value) : value, 'plaintext');
 
     if (!isNil(filePath)) {
         const legalLine = max([line, 0]) || 0;
-        hm.appendMarkdown(`[${workspace.asRelativePath(filePath, false)}${isNil(line) ? '' : `:${legalLine}`}](${Uri.parse(filePath)}#${legalLine})`);
+        ms.appendMarkdown(`[${workspace.asRelativePath(filePath, false)}${isNil(line) ? '' : `:${legalLine}`}](${Uri.parse(filePath)}#${legalLine})`);
     }
 
-    return hm;
+    return ms;
 }
 
 export const createOnDidChangeAddDecorationHandler = () => {
