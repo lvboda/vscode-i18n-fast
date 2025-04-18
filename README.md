@@ -76,6 +76,7 @@ Feel free to [submit an issue](https://github.com/lvboda/vscode-i18n-fast/issues
 The context object shared with hooks is passed as the first argument and includes:
 
 - [context.vscode](https://code.visualstudio.com/api/references/vscode-api)
+- [context.extensionContext](https://code.visualstudio.com/api/references/vscode-api#ExtensionContext)
 - [context.qs](https://www.npmjs.com/package/qs)
 - [context.crypto](https://www.npmjs.com/package/crypto-js)
 - [context.uuid](https://www.npmjs.com/package/uuid)
