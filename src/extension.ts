@@ -11,7 +11,7 @@ import { createOnCommandConvertHandler, createOnCommandPasteHandler, createOnCom
 import type { ExtensionContext } from 'vscode';
 
 export async function activate(context: ExtensionContext) {
-	await Hook.getInstance().init();
+	await Hook.getInstance().init(context);
 	await I18n.getInstance().init();
 
 	const onDidChangeAddDecorationHandler = createOnDidChangeAddDecorationHandler();

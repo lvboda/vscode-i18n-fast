@@ -13,13 +13,14 @@ import { FILE_IGNORE } from './constant';
 import Watcher, { WATCH_STATE } from './watcher';
 import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getAST, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
 
-import type { TextDocument, Uri } from 'vscode'
+import type { TextDocument, Uri, ExtensionContext } from 'vscode'
 import type { MatchType } from './types/enums';
 import type { ConvertGroup, I18nGroup } from './types';
 
 type WorkspaceHook = Map<string, Record<string, (context: Record<string, any>) => any>>;
 
 class Hook {
+    private extensionContext?: ExtensionContext;
     private hookMap: WorkspaceHook = new Map();
     private watcherMap: Map<string, Watcher> = new Map();
     private loading = false;
@@ -52,7 +53,8 @@ class Hook {
         this.hookMap.set(workspaceKey, require(path));
     }
 
-    async init() {
+    async init(extensionContext: ExtensionContext) {
+        this.extensionContext = extensionContext;
         return await this.reload();
     }
 
@@ -100,6 +102,7 @@ class Hook {
             uuid,
             _: lodash,
             vscode,
+            extensionContext: this.extensionContext,
             babel: { ...babelParser, traverse },
             hook: Hook.getInstance(),
             i18n: I18n.getInstance(),

@@ -53,6 +53,7 @@
  * some tools
  * @typedef {Object} Context
  * @property {Vscode} vscode
+ * @property {Vscode.ExtensionContext} extensionContext
  * @property {import('qs')} qs - see {@link https://www.npmjs.com/package/qs}
  * @property {import('crypto-js')} crypto - see {@link https://www.npmjs.com/package/crypto-js}
  * @property {import('uuid')} uuid - see {@link https://www.npmjs.com/package/uuid}

@@ -76,6 +76,7 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 共享给 hook 的上下文对象，作为 hook 的第一个参数传入
 
 - [context.vscode](https://code.visualstudio.com/api/references/vscode-api)
+- [context.extensionContext](https://code.visualstudio.com/api/references/vscode-api#ExtensionContext)
 - [context.qs](https://www.npmjs.com/package/qs)
 - [context.crypto](https://www.npmjs.com/package/crypto-js)
 - [context.uuid](https://www.npmjs.com/package/uuid)
