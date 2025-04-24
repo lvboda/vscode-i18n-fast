@@ -88,7 +88,6 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 - context.isInJsxElement: 基于 [babel](https://babeljs.io/docs/babel-parser)  封装判断是否在 JSX 元素内的方法
 - context.isInJsxAttribute: 基于 [babel](https://babeljs.io/docs/babel-parser)  封装判断是否在 JSX 属性内的方法
 - context.writeFileByEditor: 通过编辑器写入文件
-- context.getAST: 基于 [babel](https://babeljs.io/docs/babel-parser) 获取 AST 的方法
 - context.getICUMessageFormatAST: 基于 [formatjs/icu-messageformat-parser](https://www.npmjs.com/package/@formatjs/icu-messageformat-parser) 获取 ICU MessageFormat AST 的方法
 - context.safeCall: 吞掉函数执行抛出的错误
 - context.asyncSafeCall: 同上异步函数

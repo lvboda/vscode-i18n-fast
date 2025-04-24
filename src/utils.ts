@@ -30,6 +30,19 @@ const getDisplayIcuType = (type: TYPE) => {
   return DISPLAY_ICU_TYPE_MAP[type] || type;
 }
 
+const getDefaultAST = (codeText: string) => {
+  return parse(codeText, {
+    sourceType: "module",
+    plugins: ["jsx"],
+    errorRecovery: true,
+    allowImportExportEverywhere: true,
+    allowReturnOutsideFunction: true,
+    allowSuperOutsideMethod: true,
+    allowUndeclaredExports: true,
+    allowAwaitOutsideFunction: true,
+  });
+}
+
 export const safeCall = <T extends (...args: any[]) => any>(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => {
   try {
     return fn(...(args || []));
@@ -44,19 +57,6 @@ export const asyncSafeCall = async <T extends (...args: any[]) => Promise<any>>(
   } catch (error) {
     return errorCb?.(error);
   }
-}
-
-export const getAST = (codeText: string) => {
-  return parse(codeText, {
-    sourceType: "module",
-    plugins: ["jsx"],
-    errorRecovery: true,
-    allowImportExportEverywhere: true,
-    allowReturnOutsideFunction: true,
-    allowSuperOutsideMethod: true,
-    allowUndeclaredExports: true,
-    allowAwaitOutsideFunction: true,
-  });
 }
 
 export const getICUMessageFormatAST = (message: string) => {
@@ -142,7 +142,8 @@ export const matchChinese = (document: TextDocument) => {
 
       // 检查是否在JSX表达式中
       try {
-        const AST = getAST(documentText);
+        // FIXME 这里应该不能写死
+        const AST = getDefaultAST(documentText);
 
         traverse(AST, {
           JSXText(path) {
@@ -217,7 +218,7 @@ export const convert2pinyin = (str: string, opt: Convert2pinyinOpt) => {
 export const isInJsxElement = (input: string | Node, start: number, end: number) => {
   let AST: Node;
   if (typeof input === 'string') {
-    AST = getAST(input);
+    AST = getDefaultAST(input);
   } else {
     AST = input;
   }
@@ -269,7 +270,7 @@ export const isInJsxElement = (input: string | Node, start: number, end: number)
 export const isInJsxAttribute = (input: string | Node, start: number, end: number) => {
   let AST: Node;
   if (typeof input === 'string') {
-    AST = getAST(input);
+    AST = getDefaultAST(input);
   } else {
     AST = input;
   }

@@ -88,7 +88,6 @@ The context object shared with hooks is passed as the first argument and include
 - **context.isInJsxElement:** A method based on [babel](https://babeljs.io/docs/babel-parser) to determine if the code is inside a JSX element
 - **context.isInJsxAttribute:** A method based on [babel](https://babeljs.io/docs/babel-parser) to determine if the code is inside a JSX attribute
 - **context.writeFileByEditor:** A method to write files via the editor
-- **context.getAST:** A method to retrieve the AST using [babel](https://babeljs.io/docs/babel-parser)
 - **context.getICUMessageFormatAST:** A method to get the ICU MessageFormat AST using [@formatjs/icu-messageformat-parser](https://www.npmjs.com/package/@formatjs/icu-messageformat-parser)
 - **context.safeCall:** A helper function to catch and ignore errors thrown during function execution
 - **context.asyncSafeCall:** The async version of safeCall
