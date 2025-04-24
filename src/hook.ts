@@ -11,7 +11,7 @@ import { getConfig } from './config';
 import { showMessage } from './tips';
 import { FILE_IGNORE } from './constant';
 import Watcher, { WATCH_STATE } from './watcher';
-import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getAST, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
+import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
 
 import type { TextDocument, Uri, ExtensionContext } from 'vscode'
 import type { MatchType } from './types/enums';
@@ -110,7 +110,6 @@ class Hook {
             isInJsxElement,
             isInJsxAttribute,
             writeFileByEditor,
-            getAST,
             getICUMessageFormatAST,
             safeCall,
             asyncSafeCall,
