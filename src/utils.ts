@@ -11,7 +11,7 @@ import { showStatusBar, hideStatusBar } from './tips';
 
 import type { TextDocument } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
-import type { JSXElement, JSXText } from '@babel/types';
+import type { JSXElement, JSXText, Node } from '@babel/types';
 import type { ConvertGroup } from './types';
 
 const DISPLAY_ICU_TYPE_MAP = {
@@ -214,8 +214,13 @@ export const convert2pinyin = (str: string, opt: Convert2pinyinOpt) => {
   return str;
 }
 
-export const isInJsxElement = (documentText: string, start: number, end: number) => {
-  const AST = getAST(documentText);
+export const isInJsxElement = (input: string | Node, start: number, end: number) => {
+  let AST: Node;
+  if (typeof input === 'string') {
+    AST = getAST(input);
+  } else {
+    AST = input;
+  }
 
   let inJsx = false;
   const checkJSXText = (node: JSXText) => {
@@ -261,8 +266,13 @@ export const isInJsxElement = (documentText: string, start: number, end: number)
   return inJsx;
 };
 
-export const isInJsxAttribute = (documentText: string, start: number, end: number) => {
-  const AST = getAST(documentText);
+export const isInJsxAttribute = (input: string | Node, start: number, end: number) => {
+  let AST: Node;
+  if (typeof input === 'string') {
+    AST = getAST(input);
+  } else {
+    AST = input;
+  }
 
   let inJsxAttribute = false;
   const checkJSXAttribute = (node: JSXElement) => {
