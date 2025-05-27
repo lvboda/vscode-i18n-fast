@@ -1,7 +1,10 @@
-import { workspace, RelativePattern } from 'vscode';
-import { debounce } from 'lodash';
+import * as path from 'node:path';
+import { workspace, Uri } from 'vscode';
+// 这里为了支持 glob 用 chokidar@3.6.0 版本
+import { watch } from 'chokidar';
 
-import type { FileSystemWatcher, GlobPattern, Uri, Disposable } from "vscode";
+import type { GlobPattern, Disposable } from "vscode";
+import type { FSWatcher } from 'chokidar';
 
 export enum WATCH_STATE {
     CHANGE = 'change',
@@ -10,23 +13,37 @@ export enum WATCH_STATE {
 }
 
 export default class Watcher implements Disposable {
-    private watcher: FileSystemWatcher;
+    private cwd: string;
+    private watcher?: FSWatcher;
 
-    constructor(globPattern: string | GlobPattern) {
-        const pattern = typeof globPattern === 'string' ? new RelativePattern(workspace.workspaceFolders?.[0] || '', globPattern) : globPattern;
-        this.watcher = workspace.createFileSystemWatcher(pattern);
+    constructor() {
+        const cwd = workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+        if (!cwd) {
+            throw new Error('No workspace folder found');
+        }
+
+        this.cwd = cwd;
     }
 
-    public on(callback: (state: WATCH_STATE, uri: Uri) => void) {
-        // 这里保存文件会触发两次 change 加个防抖
-        this.watcher.onDidChange(debounce((uri) => callback(WATCH_STATE.CHANGE, uri), 300, { leading: false, trailing: true }));
-        this.watcher.onDidCreate((uri) => callback(WATCH_STATE.CREATE, uri));
-        this.watcher.onDidDelete((uri) => callback(WATCH_STATE.DELETE, uri));
+    public async watch(pattern: string | GlobPattern, callback: (state: WATCH_STATE, uri: Uri) => void): Promise<Watcher> {
+        return new Promise((resolve) => {
+            this.watcher = watch(pattern.toString(), {
+                cwd: this.cwd,
+                persistent: true,
+                ignoreInitial: true,
+            });
 
-        return this;
+            this.watcher
+                .on('add', (relativePath) => callback?.(WATCH_STATE.CREATE, Uri.file(path.join(this.cwd, relativePath))))
+                .on('change', (relativePath) => callback?.(WATCH_STATE.CHANGE, Uri.file(path.join(this.cwd, relativePath))))
+                .on('unlink', (relativePath) => callback?.(WATCH_STATE.DELETE, Uri.file(path.join(this.cwd, relativePath))))
+                .on('error', (error) => console.error(`Watcher(cwd: ${this.cwd}, pattern: ${pattern.toString()}) error:`, error))
+                .on('ready', () => resolve(this));
+        });
     }
 
-    public dispose() {
-        this.watcher.dispose();
+    public async dispose() {
+        return await this.watcher?.close();
     }
 }
