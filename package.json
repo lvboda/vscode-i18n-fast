@@ -158,6 +158,7 @@
     "@babel/traverse": "^7.26.8",
     "@formatjs/icu-messageformat-parser": "^2.11.1",
     "@monyone/aho-corasick": "^1.0.4",
+    "chokidar": "^3.6.0",
     "crypto-js": "^4.2.0",
     "lodash": "^4.17.21",
     "minimatch": "^10.0.1",

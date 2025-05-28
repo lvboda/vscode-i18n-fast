@@ -25,16 +25,16 @@ export default class I18n {
         this.i18nMap.delete(workspaceKey);
     }
 
-    private disposeWatcher(workspaceKey: string) {
+    private async disposeWatcher(workspaceKey: string) {
         const watcher = this.watcherMap.get(workspaceKey);
         if (!watcher) return;
-        watcher.dispose();
+        await watcher.dispose();
         this.watcherMap.delete(workspaceKey);
     }
 
-    dispose(workspaceKey: string) {
+    async dispose(workspaceKey: string) {
         this.disposeMap(workspaceKey);
-        this.disposeWatcher(workspaceKey);
+        await this.disposeWatcher(workspaceKey);
     }
 
     async init() {
@@ -53,7 +53,7 @@ export default class I18n {
         const i18nMap = await i18nFileUris.reduce<Promise<PathMap>>(async (map, i18nFileUri) => (await map).set(i18nFileUri.fsPath, await Hook.getInstance().collectI18n({ i18nFileUri })), Promise.resolve(new Map()));
         this.i18nMap.set(workspaceKey, i18nMap);
 
-        this.watcherMap.set(workspaceKey, new Watcher(i18nFilePattern).on(async (state, uri) => {
+        const watcher = await new Watcher().watch(i18nFilePattern, async (state, uri) => {
             const pathMap = this.i18nMap.get(workspaceKey) || new Map();
 
             switch (state) {
@@ -70,7 +70,9 @@ export default class I18n {
                     this.i18nMap.set(workspaceKey, pathMap);
                     break; 
             }
-        }));
+        });
+
+        this.watcherMap.set(workspaceKey, watcher);
     }
 
     get(): WorkspaceMap;

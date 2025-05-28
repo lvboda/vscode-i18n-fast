@@ -39,7 +39,7 @@ export async function activate(context: ExtensionContext) {
 export async function deactivate() {
 	const workspaceKey = getWorkspaceKey();
 	if (workspaceKey) {
-		Hook.getInstance().dispose(workspaceKey);
-		I18n.getInstance().dispose(workspaceKey);
+		await Hook.getInstance().dispose(workspaceKey);
+		await I18n.getInstance().dispose(workspaceKey);
 	}
 }
