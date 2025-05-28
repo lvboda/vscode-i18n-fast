@@ -47,9 +47,9 @@ export default class Watcher implements Disposable {
             });
 
             this.watcher
-                .on('add', (relativePath) => callback?.(WATCH_STATE.CREATE, Uri.file(path.join(cwd, relativePath))))
-                .on('change', (relativePath) => callback?.(WATCH_STATE.CHANGE, Uri.file(path.join(cwd, relativePath))))
-                .on('unlink', (relativePath) => callback?.(WATCH_STATE.DELETE, Uri.file(path.join(cwd, relativePath))))
+                .on('add', (relativePath) => callback(WATCH_STATE.CREATE, Uri.file(path.join(cwd, relativePath))))
+                .on('change', (relativePath) => callback(WATCH_STATE.CHANGE, Uri.file(path.join(cwd, relativePath))))
+                .on('unlink', (relativePath) => callback(WATCH_STATE.DELETE, Uri.file(path.join(cwd, relativePath))))
                 .on('error', (error) => console.error(`Watcher(cwd: ${cwd}, pattern: ${rp.pattern}) error:`, error))
                 .on('ready', () => resolve(this));
         });
