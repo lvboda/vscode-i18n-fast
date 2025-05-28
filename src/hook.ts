@@ -11,15 +11,16 @@ import { getConfig } from './config';
 import { showMessage } from './tips';
 import { FILE_IGNORE } from './constant';
 import Watcher, { WATCH_STATE } from './watcher';
-import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getAST, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
+import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
 
-import type { TextDocument, Uri } from 'vscode'
+import type { TextDocument, Uri, ExtensionContext } from 'vscode'
 import type { MatchType } from './types/enums';
 import type { ConvertGroup, I18nGroup } from './types';
 
 type WorkspaceHook = Map<string, Record<string, (context: Record<string, any>) => any>>;
 
 class Hook {
+    private extensionContext?: ExtensionContext;
     private hookMap: WorkspaceHook = new Map();
     private watcherMap: Map<string, Watcher> = new Map();
     private loading = false;
@@ -34,16 +35,16 @@ class Hook {
         this.hookMap.delete(workspaceKey);
     }
 
-    private disposeWatcher(workspaceKey: string) {
+    private async disposeWatcher(workspaceKey: string) {
         const watcher = this.watcherMap.get(workspaceKey);
         if (!watcher) return;
-        watcher.dispose();
+        await watcher.dispose();
         this.watcherMap.delete(workspaceKey);
     }
 
-    dispose(workspaceKey: string) {
+    async dispose(workspaceKey: string) {
         this.disposeMap(workspaceKey);
-        this.disposeWatcher(workspaceKey);
+        await this.disposeWatcher(workspaceKey);
     }
 
     setHook(workspaceKey: string, path: string) {
@@ -52,7 +53,8 @@ class Hook {
         this.hookMap.set(workspaceKey, require(path));
     }
 
-    async init() {
+    async init(extensionContext: ExtensionContext) {
+        this.extensionContext = extensionContext;
         return await this.reload();
     }
 
@@ -73,7 +75,7 @@ class Hook {
     
             this.setHook(workspaceKey, file.fsPath);
 
-            this.watcherMap.set(workspaceKey, new Watcher(hookFilePattern).on(async (state, uri) => {
+            const watcher = await new Watcher().watch(hookFilePattern, async (state, uri) => {
                 switch (state) {
                     case WATCH_STATE.CHANGE:
                         this.setHook(workspaceKey, uri.fsPath);
@@ -84,7 +86,9 @@ class Hook {
                 }
 
                 await I18n.getInstance().reload();
-            }));
+            });
+
+            this.watcherMap.set(workspaceKey, watcher);
         } catch(error: any) {
             showMessage('warn', `<loadHook error> ${error?.stack}`);
         } finally {
@@ -100,6 +104,7 @@ class Hook {
             uuid,
             _: lodash,
             vscode,
+            extensionContext: this.extensionContext,
             babel: { ...babelParser, traverse },
             hook: Hook.getInstance(),
             i18n: I18n.getInstance(),
@@ -107,7 +112,6 @@ class Hook {
             isInJsxElement,
             isInJsxAttribute,
             writeFileByEditor,
-            getAST,
             getICUMessageFormatAST,
             safeCall,
             asyncSafeCall,
