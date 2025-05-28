@@ -164,7 +164,6 @@ module.exports = {
                 .filter(({ i18nKey, overwriteI18nKeyRanges }) => !_.isNil(i18nKey) && overwriteI18nKeyRanges.length > 0);
 
             if (!needCreateGroups.length) return;
-            await writeFileByEditor(document.uri, needCreateGroups.map(({ i18nKey, overwriteI18nKeyRanges }) => overwriteI18nKeyRanges.map((range) => ({ range, content: i18nKey }))).flat());
 
             for (const groups of _.partition(needCreateGroups, 'isCommon')) {
                 if (!groups.length) continue;
@@ -179,6 +178,8 @@ module.exports = {
 
                 await writeFileByEditor(path, i18nFileContent, true);
             }
+
+            await writeFileByEditor(document.uri, needCreateGroups.map(({ i18nKey, overwriteI18nKeyRanges }) => overwriteI18nKeyRanges.map((range) => ({ range, content: i18nKey }))).flat());
         })
         .catch((error) => showMessage('error', `<genI18nKey error> ${error?.stack || error}`))
         .finally(() => setLoading(false));
