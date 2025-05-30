@@ -201,7 +201,7 @@ const genHoverMessage = ({ value, valueAST, filePath, line, hoverMessage }: I18n
 }
 
 export const createOnDidChangeAddDecorationHandler = () => {
-    const handler = async (editor?: TextEditor) => {
+    const handler = async (editor = window.activeTextEditor) => {
         if (!editor?.document) return;
         // 排除掉 i18n 文件
         const { i18nFilePattern } = getConfig();
