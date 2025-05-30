@@ -54,12 +54,9 @@ export default class I18n {
             const pathMap = this.i18nMap.get(workspaceKey) || new Map();
 
             switch (state) {
+                case WATCH_STATE.CREATE:
                 case WATCH_STATE.CHANGE:
                     pathMap.set(uri.fsPath, await Hook.getInstance().collectI18n({ i18nFileUri: uri }));
-                    this.i18nMap.set(workspaceKey, pathMap);
-                    break;
-                case WATCH_STATE.CREATE:
-                    pathMap.set(uri.fsPath, []);
                     this.i18nMap.set(workspaceKey, pathMap);
                     break;
                 case WATCH_STATE.DELETE:
