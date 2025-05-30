@@ -72,7 +72,7 @@ class Hook {
 
         this.loading = true;
         try {
-            const watchCallback = async (state: WATCH_STATE, uri: Uri) => {
+            const watchCallback = (state: WATCH_STATE, uri: Uri) => {
                 switch (state) {
                     case WATCH_STATE.CHANGE:
                         this.setHook(workspaceKey, uri.fsPath);
