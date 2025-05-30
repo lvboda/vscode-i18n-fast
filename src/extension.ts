@@ -11,12 +11,14 @@ import { createOnCommandConvertHandler, createOnCommandPasteHandler, createOnCom
 import type { ExtensionContext } from 'vscode';
 
 export async function activate(context: ExtensionContext) {
+	const onDidChangeAddDecorationHandler = createOnDidChangeAddDecorationHandler();
+	const debouncedOnDidChangeAddDecorationHandler = debounce(onDidChangeAddDecorationHandler, 300);
+
+	I18n.getInstance().onChange(() => onDidChangeAddDecorationHandler());
+	Hook.getInstance().onChange(() => I18n.getInstance().reload());
+
 	await Hook.getInstance().init(context);
 	await I18n.getInstance().init();
-
-	const onDidChangeAddDecorationHandler = createOnDidChangeAddDecorationHandler();
-	onDidChangeAddDecorationHandler(window.activeTextEditor);
-	const debouncedOnDidChangeAddDecorationHandler = debounce(onDidChangeAddDecorationHandler, 300);
 
 	context.subscriptions.push(
 		languages.registerDefinitionProvider('*', I18nJumpProvider.getInstance()),
@@ -25,8 +27,8 @@ export async function activate(context: ExtensionContext) {
 		commands.registerCommand(COMMAND_PASTE_KEY, createOnCommandPasteHandler()),
 		commands.registerCommand(COMMAND_UNDO_KEY, createOnCommandUndoHandler()),
 		window.onDidChangeActiveTextEditor((editor) => onDidChangeAddDecorationHandler(editor)),
-		window.onDidChangeTextEditorVisibleRanges(() => debouncedOnDidChangeAddDecorationHandler(window.activeTextEditor)),
-		workspace.onDidChangeTextDocument(() => debouncedOnDidChangeAddDecorationHandler(window.activeTextEditor)),
+		window.onDidChangeTextEditorVisibleRanges(() => debouncedOnDidChangeAddDecorationHandler()),
+		workspace.onDidChangeTextDocument(() => debouncedOnDidChangeAddDecorationHandler()),
 		workspace.onDidChangeConfiguration(async (event) => {
 			if ([`${PLUGIN_NAME}.hookFilePattern`, `${PLUGIN_NAME}.i18nFilePattern`].some((key) => event.affectsConfiguration(key))) {
 				await Hook.getInstance().reload();

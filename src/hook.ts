@@ -24,6 +24,7 @@ class Hook {
     private hookMap: WorkspaceHook = new Map();
     private watcherMap: Map<string, Watcher> = new Map();
     private loading = false;
+    private _onChange?: () => void;
     private static instance: Hook;
 
     static getInstance(): Hook {
@@ -47,6 +48,10 @@ class Hook {
         await this.disposeWatcher(workspaceKey);
     }
 
+    onChange(callback: Hook['_onChange']) {
+        this._onChange = callback;
+    }
+
     setHook(workspaceKey: string, path: string) {
         // 删除 require 缓存
         delete require.cache[require.resolve(path)];
@@ -62,20 +67,12 @@ class Hook {
         hookFilePattern = hookFilePattern || getConfig().hookFilePattern;
         const workspaceKey = getWorkspaceKey();
         if (!workspaceKey) return;
-        this.dispose(workspaceKey);
+        await this.dispose(workspaceKey);
         if (!hookFilePattern) return;
 
         this.loading = true;
         try {
-            const [file] = await vscode.workspace.findFiles(hookFilePattern, FILE_IGNORE);
-            if (!file) {
-                this.hookMap.delete(workspaceKey);
-                return;
-            }
-    
-            this.setHook(workspaceKey, file.fsPath);
-
-            const watcher = await new Watcher().watch(hookFilePattern, async (state, uri) => {
+            const watchCallback = async (state: WATCH_STATE, uri: Uri) => {
                 switch (state) {
                     case WATCH_STATE.CHANGE:
                         this.setHook(workspaceKey, uri.fsPath);
@@ -85,9 +82,14 @@ class Hook {
                         break;
                 }
 
-                await I18n.getInstance().reload();
-            });
+                this._onChange?.();
+            };
 
+            // init
+            const [file] = await vscode.workspace.findFiles(hookFilePattern, FILE_IGNORE);
+            if (file) watchCallback(WATCH_STATE.CHANGE, file);
+
+            const watcher = await new Watcher().watch(hookFilePattern, watchCallback);
             this.watcherMap.set(workspaceKey, watcher);
         } catch(error: any) {
             showMessage('warn', `<loadHook error> ${error?.stack}`);
