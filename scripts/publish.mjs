@@ -60,14 +60,15 @@ async function updateChangelog({ targetVersion }) {
   if (!targetVersion) {
     targetVersion = (await getPackageJson()).version;
   }
-  
-  const { data: tags } = await octokit.repos.listTags({
+
+  const { data: releases } = await octokit.repos.listReleases({
     owner: REPO_OWNER,
-    repo: REPO_NAME
+    repo: REPO_NAME,
+    per_page: 1
   });
   
-  const lastTag = tags[0];
-  const since = lastTag ? new Date(lastTag.commit.sha) : new Date('2025-05-25');
+  const published_at = releases?.[0]?.published_at;
+  const since = published_at ? new Date(published_at) : new Date('2025-05-25');
 
   const { data: pulls } = await octokit.pulls.list({
     owner: REPO_OWNER,
