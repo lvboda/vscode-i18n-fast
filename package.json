@@ -135,13 +135,19 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "package": "vsce package",
-    "publish": "vsce publish",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "publish": "npx zx scripts/publish.mjs",
+    "publish:pre": "npx zx scripts/publish.mjs --tasks preCheck,updateVersion,updateChangelog",
+    "publish:all": "npx zx scripts/publish.mjs --tasks publishToVscode,gitPush,publishToGithub",
+    "publish:vscode": "npx zx scripts/publish.mjs --tasks publishToVscode",
+    "publish:github": "npx zx scripts/publish.mjs --tasks gitPush,publishToGithub",
+    "package": "vsce package",
+    "package:alpha": "npx zx scripts/publish.mjs --tasks packageVsix --release prerelease --identifier alpha"
   },
   "devDependencies": {
+    "@octokit/rest": "^22.0.0",
     "@types/babel__traverse": "^7.20.6",
     "@types/crypto-js": "^4.2.2",
     "@types/lodash": "^4.17.7",
@@ -151,7 +157,9 @@
     "@typescript-eslint/eslint-plugin": "^5.42.0",
     "@typescript-eslint/parser": "^5.42.0",
     "eslint": "^8.26.0",
-    "typescript": "^5.7.3"
+    "semver": "^7.7.2",
+    "typescript": "^5.7.3",
+    "zx": "^8.5.4"
   },
   "dependencies": {
     "@babel/parser": "^7.26.8",
@@ -160,6 +168,7 @@
     "@monyone/aho-corasick": "^1.0.4",
     "chokidar": "^3.6.0",
     "crypto-js": "^4.2.0",
+    "dotenv": "^16.5.0",
     "lodash": "^4.17.21",
     "minimatch": "^10.0.1",
     "qs": "^6.13.0",
