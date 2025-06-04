@@ -172,13 +172,13 @@ module.exports = {
 
                 const content = groups.reduce((pre, { i18nKey, i18nValue }) => {
                     if (i18nKey && i18nValue) {
-                        pre += `'${i18nKey}': '${i18nValue}',`;
+                        pre += `\n  '${i18nKey}': '${i18nValue}',`;
                     }
                     return pre;
                 }, '');
 
                 if (!content) continue;
-                await writeFileByEditor(path, i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `${/module\.exports\s*=\s*{\s*}\s*;/.test(i18nFileContent) ? '' : ','}\n  ${content}\n};`), true);
+                await writeFileByEditor(path, i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `${/module\.exports\s*=\s*{\s*}\s*;/.test(i18nFileContent) ? '' : ','}${content}\n};`), true);
             }
 
             await writeFileByEditor(document.uri, needCreateGroups.map(({ i18nKey, overwriteI18nKeyRanges }) => overwriteI18nKeyRanges.map((range) => ({ range, content: i18nKey }))).flat());
