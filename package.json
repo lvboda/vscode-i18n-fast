@@ -129,6 +129,11 @@
             "picker",
             "smart"
           ]
+        },
+        "i18n-fast.autoMatchChinese": {
+          "description": "%package.configuration.autoMatchChinese%",
+          "type": "boolean",
+          "default": true
         }
       }
     }

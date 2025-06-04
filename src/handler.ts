@@ -13,7 +13,7 @@ import { MatchType, SupportType, ConvertType, ConflictPolicy } from './types/enu
 import { COMMAND_CONVERT_KEY, PLUGIN_NAME } from './constant';
 import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading, checkSupportType } from './utils';
 
-import type { TextEditor, DecorationOptions } from 'vscode';
+import type { DecorationOptions } from 'vscode';
 import type { ConvertGroup, I18nGroup } from './types';
 
 const i18nKeyConflictDecorationType = window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 0, 0, 0.5)' });
@@ -71,10 +71,9 @@ export const createOnCommandConvertHandler = () => {
         if (!convertGroups.length) {
             convertGroups.push(...await Hook.getInstance().match({ document }));
 
-            // TODO 这里暂时不放开 需要完善
-            // if (getConfig().autoMatchChinese) {
-            //     convertGroups.push(...matchChinese(document));
-            // }
+            if (getConfig().autoMatchChinese) {
+                convertGroups.push(...matchChinese(document));
+            }
         }
 
         if (convertGroups.every(({ i18nValue }) => !i18nValue.trim())) return;
