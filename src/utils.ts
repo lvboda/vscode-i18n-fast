@@ -237,7 +237,7 @@ export const isInJsxElement = (input: string | Node, start: number, end: number)
       if (node.children.length === 0) return true;
       for (const child of node.children) {
         if (child.type === 'JSXText') return checkJSXText(child);
-      } 
+      }
     }
 
     return false;
@@ -324,13 +324,13 @@ export class FileSnapshot {
   }
 
   get(uri?: Uri) {
-    if (uri) {
-      return [{ uri, snapshots: this.map.get(uri) || [] }];
-    }
-
-    return Array.from(this.map.entries()).map(([uri, snapshots]) => ({
+    return (
+      uri
+        ? [[uri, this.map.get(uri) || []] as const]
+        : Array.from(this.map.entries())
+    ).map(([uri, snapshots]) => ({
       uri,
-      snapshots: snapshots.sort((a, b) => b.unix - a.unix)
+      snapshots: snapshots.sort((a, b) => a.unix - b.unix)
     }));
   }
 
@@ -408,7 +408,7 @@ export const AST2formattedStr = (ast: MessageFormatElement[]) => {
         '\n' + ' '.repeat(indent - 1 < 0 ? 0 : indent - 1) + `}`
       );
     }
-    
+
     return commonProcess(node);
   }
 
