@@ -304,17 +304,46 @@ export const isInJsxAttribute = (input: string | Node, start: number, end: numbe
   return inJsxAttribute;
 };
 
-let writeHistory: Uri[] = [];
-export const getWriteHistory = () => writeHistory;
-export const pushWriteHistory = (uri: Uri) => {
-  writeHistory.push(uri);
-}
-export const clearWriteHistory = () => {
-  writeHistory = [];
+export class FileSnapshot {
+  private map: Map<Uri, { content: Uint8Array, unix: number }[]> = new Map();
+  private static instance: FileSnapshot;
+
+  static getInstance() {
+    if (!FileSnapshot.instance) {
+      FileSnapshot.instance = new FileSnapshot;
+    }
+    return FileSnapshot.instance;
+  }
+
+  set(uri: Uri, content: Uint8Array) {
+    if (!this.map.has(uri)) {
+      this.map.set(uri, []);
+    }
+
+    this.map.get(uri)!.push({ content, unix: Date.now() });
+  }
+
+  get(uri?: Uri) {
+    if (uri) {
+      return [{ uri, snapshots: this.map.get(uri) || [] }];
+    }
+
+    return Array.from(this.map.entries()).map(([uri, snapshots]) => ({
+      uri,
+      snapshots: snapshots.sort((a, b) => b.unix - a.unix)
+    }));
+  }
+
+  clear() {
+    this.map.clear();
+  }
 }
 
 export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false) => {
   fileUri = typeof fileUri === 'string' ? Uri.file(fileUri) : fileUri;
+
+  const fileSnapshot = await workspace.fs.readFile(fileUri);
+
   const document = await workspace.openTextDocument(fileUri);
   const workspaceEdit = new WorkspaceEdit();
 
@@ -326,7 +355,9 @@ export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: st
 
   await workspace.applyEdit(workspaceEdit);
   if (isSave) await document.save();
-  pushWriteHistory(fileUri);
+
+  FileSnapshot.getInstance().set(fileUri, fileSnapshot);
+
   return true;
 };
 

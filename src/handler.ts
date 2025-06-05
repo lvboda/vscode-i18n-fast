@@ -11,7 +11,7 @@ import { getConfig } from './config';
 import { asyncInvokeWithErrorHandler } from './error';
 import { MatchType, SupportType, ConvertType, ConflictPolicy } from './types/enums';
 import { COMMAND_CONVERT_KEY, PLUGIN_NAME } from './constant';
-import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading, checkSupportType } from './utils';
+import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, FileSnapshot, isLoading, checkSupportType } from './utils';
 
 import type { TextEditor, DecorationOptions } from 'vscode';
 import type { ConvertGroup, I18nGroup } from './types';
@@ -55,7 +55,7 @@ export const createOnCommandConvertHandler = () => {
 
         if (!editor) return;
         
-        clearWriteHistory();
+        FileSnapshot.getInstance().clear();
         const document = editor.document;
         const documentText = document.getText();
 
@@ -154,20 +154,14 @@ export const createOnCommandUndoHandler = () => {
     const handler = async () => {
         if (isLoading()) return showMessage('info', localize("handler.undo.loading.tip"));
 
-        const activeUri = window.activeTextEditor?.document.uri;
-
-        for (const [path, writeCount] of Object.entries(countBy(getWriteHistory(), (uri) => uri.fsPath))) {
-            const document = await workspace.openTextDocument(Uri.file(path));
-            await window.showTextDocument(document, { preserveFocus: true });
-            
-            for (let i = 0; i < writeCount; i++) {
-                await commands.executeCommand('undo');
+        for (const { uri, snapshots } of FileSnapshot.getInstance().get()) {
+            const firstSnapshot = snapshots.shift();
+            if (firstSnapshot) {
+                await workspace.fs.writeFile(uri, firstSnapshot.content);
             }
         }
 
-        clearWriteHistory();
-
-        if (activeUri) await window.showTextDocument(await workspace.openTextDocument(activeUri), { preserveFocus: true });
+        FileSnapshot.getInstance().clear();
     }
 
     return asyncInvokeWithErrorHandler(handler);
