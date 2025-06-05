@@ -30,10 +30,10 @@ If other i18n plugins cannot meet your requirements and you're willing to invest
 
 - Supports i18n feedback display
 - Supports jumping to i18n definitions
-- Supports i18n conflict resolution (when a duplicate i18n entry is encountered)
-- Supports reading text from the clipboard
-- In theory, supports any functionality you need (to be implemented by yourself)
-- ~~Supports matching Chinese text in code~~ https://github.com/lvboda/vscode-i18n-fast/issues/19
+- Supports i18n conflict resolution (duplicate definitions)
+- Supports i18n conversion via clipboard text, selected text, or custom logic
+- Supports batch matching of Chinese text for i18n conversion
+- Theoretically supports any functionality you want (via hooks)
 - ~~Supports searching i18n~~ https://github.com/lvboda/vscode-i18n-fast/issues/1
 
 ## Quick Start
