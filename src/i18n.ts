@@ -6,6 +6,7 @@ import { FILE_IGNORE } from './constant';
 import { getWorkspaceKey } from './utils';
 import Watcher, { WATCH_STATE } from './watcher';
 
+import type { Uri } from 'vscode';
 import type { I18nGroup } from "./types";
 
 type PathMap = Map<string, I18nGroup[]>;
@@ -14,6 +15,7 @@ type WorkspaceMap = Map<string, PathMap>;
 export default class I18n {
     private i18nMap: WorkspaceMap = new Map();
     private watcherMap: Map<string, Watcher> = new Map();
+    private _onChange?: () => void;
     private static instance: I18n;
 
     static getInstance(): I18n {
@@ -45,24 +47,16 @@ export default class I18n {
         i18nFilePattern = i18nFilePattern || getConfig().i18nFilePattern;
         const workspaceKey = getWorkspaceKey();
         if (!workspaceKey) return;
-        this.dispose(workspaceKey);
+        await this.dispose(workspaceKey);
         if (!i18nFilePattern) return;
-        const i18nFileUris = await workspace.findFiles(i18nFilePattern, FILE_IGNORE);
-        if (!i18nFileUris.length) return;
-    
-        const i18nMap = await i18nFileUris.reduce<Promise<PathMap>>(async (map, i18nFileUri) => (await map).set(i18nFileUri.fsPath, await Hook.getInstance().collectI18n({ i18nFileUri })), Promise.resolve(new Map()));
-        this.i18nMap.set(workspaceKey, i18nMap);
 
-        const watcher = await new Watcher().watch(i18nFilePattern, async (state, uri) => {
+        const watchCallback = async (state: WATCH_STATE, uri: Uri) => {
             const pathMap = this.i18nMap.get(workspaceKey) || new Map();
 
             switch (state) {
+                case WATCH_STATE.CREATE:
                 case WATCH_STATE.CHANGE:
                     pathMap.set(uri.fsPath, await Hook.getInstance().collectI18n({ i18nFileUri: uri }));
-                    this.i18nMap.set(workspaceKey, pathMap);
-                    break;
-                case WATCH_STATE.CREATE:
-                    pathMap.set(uri.fsPath, []);
                     this.i18nMap.set(workspaceKey, pathMap);
                     break;
                 case WATCH_STATE.DELETE:
@@ -70,8 +64,20 @@ export default class I18n {
                     this.i18nMap.set(workspaceKey, pathMap);
                     break; 
             }
-        });
+        };
 
+        // init
+        const i18nFileUris = await workspace.findFiles(i18nFilePattern, FILE_IGNORE);
+        for (const uri of i18nFileUris) {
+            await watchCallback(WATCH_STATE.CHANGE, uri);
+        }
+        // 不放在 cb 里是因为要保持初始化只调用一次
+        this._onChange?.();
+
+        const watcher = await new Watcher().watch(i18nFilePattern, async (state, uri) => {
+            await watchCallback(state, uri);
+            this._onChange?.();
+        });
         this.watcherMap.set(workspaceKey, watcher);
     }
 
@@ -86,5 +92,9 @@ export default class I18n {
         return Array.from(this.get(workspaceKey)?.entries() || [])
             .map(([filePath, groups]) => groups?.map((item) => ({ filePath, ...item })) || [])
             .flat();
+    }
+
+    onChange(callback: I18n['_onChange']) {
+        this._onChange = callback;
     }
 }

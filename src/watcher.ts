@@ -35,7 +35,7 @@ export default class Watcher implements Disposable {
         return pattern;
     }
 
-    public async watch(pattern: GlobPattern, callback: (state: WATCH_STATE, uri: Uri) => void): Promise<Watcher> {
+    async watch(pattern: GlobPattern, callback: (state: WATCH_STATE, uri: Uri) => void): Promise<Watcher> {
         const rp = this.toRelativePattern(pattern);
         const cwd = rp.baseUri?.fsPath || this.cwd;
 
@@ -55,7 +55,7 @@ export default class Watcher implements Disposable {
         });
     }
 
-    public async dispose() {
+    async dispose() {
         return await this.watcher?.close();
     }
 }
