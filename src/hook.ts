@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import * as lodash from 'lodash';
-import * as qs from 'qs';
-import * as crypto from 'crypto-js';
 import * as uuid from 'uuid';
 import * as babelParser from '@babel/parser';
 import traverse from '@babel/traverse';
+import lodash from 'lodash';
+import qs from 'qs';
+import crypto from 'crypto-js';
 
 import I18n from './i18n';
 import { getConfig } from './config';
