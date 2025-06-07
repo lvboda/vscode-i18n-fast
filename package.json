@@ -69,7 +69,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
@@ -139,19 +139,21 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "pnpm run pkg",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "pkg": "webpack --mode production --devtool hidden-source-map",
     "lint": "eslint src --ext ts",
     "publish": "npx zx scripts/publish.mjs",
     "publish:pre": "npx zx scripts/publish.mjs --tasks preCheck,updateVersion,updateChangelog",
     "publish:all": "npx zx scripts/publish.mjs --tasks publishToVscode,gitPush,publishToGithub",
     "publish:vscode": "npx zx scripts/publish.mjs --tasks publishToVscode",
     "publish:github": "npx zx scripts/publish.mjs --tasks gitPush,publishToGithub",
-    "package": "vsce package",
+    "package": "pnpm npx vsce package --no-dependencies",
     "package:alpha": "npx zx scripts/publish.mjs --tasks packageVsix --release prerelease --identifier alpha"
   },
   "devDependencies": {
+    "@babel/types": "7.27.6",
     "@octokit/rest": "^22.0.0",
     "@types/babel__traverse": "^7.20.6",
     "@types/crypto-js": "^4.2.2",
@@ -163,7 +165,10 @@
     "@typescript-eslint/parser": "^5.42.0",
     "eslint": "^8.26.0",
     "semver": "^7.7.2",
+    "ts-loader": "^9.5.2",
     "typescript": "^5.7.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1",
     "zx": "^8.5.4"
   },
   "dependencies": {

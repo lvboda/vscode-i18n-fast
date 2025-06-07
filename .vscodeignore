@@ -13,3 +13,7 @@ token.txt
 *.vsix
 test/**
 example/**
+.env
+pnpm-lock.yaml
+scripts/**
+out/**
