@@ -71,6 +71,7 @@
  * @property {() => Record<string, string>} getConfig - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/config.ts}
  * @property {(loading: boolean, text?: string) => void} setLoading - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts#}
  * @property {(type: "info" | "warn" | "error", message: string, maxLength = 300, ...args: string[]) => void} showMessage - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/tips.ts}
+ * @property {(document: Vscode.TextDocument) => ConvertGroup[]} matchChinese - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
 */
 
 module.exports = {
