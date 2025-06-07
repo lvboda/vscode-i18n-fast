@@ -1,5 +1,5 @@
 import { window, workspace, Range, Uri, MarkdownString, env, commands } from 'vscode';
-import { isNil, max, flatMapDeep, countBy } from 'lodash';
+import { isNil, max, flatMapDeep } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
@@ -17,10 +17,9 @@ import {
     safeCall,
     truncateByDisplayWidth,
     matchChinese,
-    getWriteHistory,
-    clearWriteHistory,
     getLoading,
-    checkSupportType
+    checkSupportType,
+    FileSnapshot
 } from './utils';
 
 import type { DecorationOptions } from 'vscode';
@@ -65,7 +64,7 @@ export const createOnCommandConvertHandler = () => {
 
         if (!editor) return;
         
-        clearWriteHistory();
+        FileSnapshot.getInstance().clear();
         const document = editor.document;
         const documentText = document.getText();
 
@@ -163,20 +162,14 @@ export const createOnCommandUndoHandler = () => {
     const handler = async () => {
         if (getLoading()) return showMessage('info', localize("handler.undo.loading.tip"));
 
-        const activeUri = window.activeTextEditor?.document.uri;
-
-        for (const [path, writeCount] of Object.entries(countBy(getWriteHistory(), (uri) => uri.fsPath))) {
-            const document = await workspace.openTextDocument(Uri.file(path));
-            await window.showTextDocument(document, { preserveFocus: true });
-            
-            for (let i = 0; i < writeCount; i++) {
-                await commands.executeCommand('undo');
+        for (const { uri, snapshots } of FileSnapshot.getInstance().get()) {
+            const firstSnapshot = snapshots.shift();
+            if (firstSnapshot) {
+                await workspace.fs.writeFile(uri, firstSnapshot.content);
             }
         }
 
-        clearWriteHistory();
-
-        if (activeUri) await window.showTextDocument(await workspace.openTextDocument(activeUri), { preserveFocus: true });
+        FileSnapshot.getInstance().clear();
     }
 
     return asyncInvokeWithErrorHandler(handler);

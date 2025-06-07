@@ -230,7 +230,7 @@ export const isInJsxElement = (input: string | Node, start: number, end: number)
       if (node.children.length === 0) return true;
       for (const child of node.children) {
         if (child.type === 'JSXText') return checkJSXText(child);
-      } 
+      }
     }
 
     return false;
@@ -297,17 +297,46 @@ export const isInJsxAttribute = (input: string | Node, start: number, end: numbe
   return inJsxAttribute;
 };
 
-let writeHistory: Uri[] = [];
-export const getWriteHistory = () => writeHistory;
-export const pushWriteHistory = (uri: Uri) => {
-  writeHistory.push(uri);
-}
-export const clearWriteHistory = () => {
-  writeHistory = [];
+export class FileSnapshot {
+  private map: Map<Uri, { content: Uint8Array, unix: number }[]> = new Map();
+  private static instance: FileSnapshot;
+
+  static getInstance() {
+    if (!FileSnapshot.instance) {
+      FileSnapshot.instance = new FileSnapshot;
+    }
+    return FileSnapshot.instance;
+  }
+
+  set(uri: Uri, content: Uint8Array) {
+    if (!this.map.has(uri)) {
+      this.map.set(uri, []);
+    }
+
+    this.map.get(uri)!.push({ content, unix: Date.now() });
+  }
+
+  get(uri?: Uri) {
+    return (
+      uri
+        ? [[uri, this.map.get(uri) || []] as const]
+        : Array.from(this.map.entries())
+    ).map(([uri, snapshots]) => ({
+      uri,
+      snapshots: snapshots.sort((a, b) => a.unix - b.unix)
+    }));
+  }
+
+  clear() {
+    this.map.clear();
+  }
 }
 
 export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false) => {
   fileUri = typeof fileUri === 'string' ? Uri.file(fileUri) : fileUri;
+
+  const fileSnapshot = await workspace.fs.readFile(fileUri);
+
   const document = await workspace.openTextDocument(fileUri);
   const workspaceEdit = new WorkspaceEdit();
 
@@ -319,7 +348,9 @@ export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: st
 
   await workspace.applyEdit(workspaceEdit);
   if (isSave) await document.save();
-  pushWriteHistory(fileUri);
+
+  FileSnapshot.getInstance().set(fileUri, fileSnapshot);
+
   return true;
 };
 
@@ -370,7 +401,7 @@ export const AST2formattedStr = (ast: MessageFormatElement[]) => {
         '\n' + ' '.repeat(indent - 1 < 0 ? 0 : indent - 1) + `}`
       );
     }
-    
+
     return commonProcess(node);
   }
 
