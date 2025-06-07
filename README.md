@@ -92,7 +92,8 @@ The context object shared with hooks is passed as the first argument and include
 - context.safeCall: A helper function to catch and ignore errors thrown during function execution
 - context.asyncSafeCall: The async version of safeCall
 - context.getConfig: Retrieves the [plugin configuration](#plugin-configuration)
-- context.setLoading: Sets a global loading state
+- context.getLoading: Get the global loading state
+- context.setLoading: Set the global loading state
 - context.showMessage: A simplified version of a VS Code popup message
 - context.matchChinese: Chinese matching method (implementation of `autoMatchChinese: true`)
 

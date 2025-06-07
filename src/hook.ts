@@ -20,6 +20,7 @@ import {
     safeCall,
     asyncSafeCall,
     getWorkspaceKey,
+    getLoading,
     setLoading,
     dynamicRequire,
     matchChinese,
@@ -128,6 +129,7 @@ class Hook {
             safeCall,
             asyncSafeCall,
             getConfig,
+            getLoading,
             setLoading,
             showMessage,
             matchChinese

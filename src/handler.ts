@@ -11,7 +11,17 @@ import { getConfig } from './config';
 import { asyncInvokeWithErrorHandler } from './error';
 import { MatchType, SupportType, ConvertType, ConflictPolicy } from './types/enums';
 import { COMMAND_CONVERT_KEY, PLUGIN_NAME } from './constant';
-import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, getWriteHistory, clearWriteHistory, isLoading, checkSupportType } from './utils';
+import {
+    AST2readableStr,
+    AST2formattedStr,
+    safeCall,
+    truncateByDisplayWidth,
+    matchChinese,
+    getWriteHistory,
+    clearWriteHistory,
+    getLoading,
+    checkSupportType
+} from './utils';
 
 import type { DecorationOptions } from 'vscode';
 import type { ConvertGroup, I18nGroup } from './types';
@@ -151,7 +161,7 @@ export const createOnCommandPasteHandler = () => {
 
 export const createOnCommandUndoHandler = () => {
     const handler = async () => {
-        if (isLoading()) return showMessage('info', localize("handler.undo.loading.tip"));
+        if (getLoading()) return showMessage('info', localize("handler.undo.loading.tip"));
 
         const activeUri = window.activeTextEditor?.document.uri;
 

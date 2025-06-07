@@ -92,6 +92,7 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 - context.safeCall：吞掉函数执行抛出的错误
 - context.asyncSafeCall：同上异步函数
 - context.getConfig：获取[插件配置](#插件配置)
+- context.getLoading：获取全局 loading 状态
 - context.setLoading：设置全局 loading 状态
 - context.showMessage：vscode 弹窗简化版
 - context.matchChinese：中文匹配方法（`autoMatchChinese: true` 的实现）

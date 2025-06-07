@@ -397,7 +397,7 @@ export const getWorkspaceKey = () => {
 }
 
 let loadingCount = 0;
-export const isLoading = () => loadingCount > 0;
+export const getLoading = () => loadingCount > 0;
 export const setLoading = (loading: boolean, text = ' $(loading~spin) generating...') => {
   loadingCount += loading ? 1 : -1;
   if (loadingCount > 0) {
