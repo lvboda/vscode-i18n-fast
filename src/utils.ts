@@ -124,42 +124,35 @@ export const matchChinese = (document: TextDocument) => {
         }
       }
 
+      let start = begin + 1;
       nextIndex = end;
-      key = documentText.substring(begin + 1, end);
-      key = documentText[begin] === '`' ? key : key.trim();
+      key = documentText.substring(start, end);
+
+      if (documentText[begin] !== '`') {
+        const trimmedKey = key.trim();
+
+        // 兼容匹配到的文本前后有空字符的情况
+        if (trimmedKey !== key) {
+          const leadingSpaces = key.length - key.trimStart().length;
+          const trailingSpaces = key.length - key.trimEnd().length;
+          start += leadingSpaces;
+          end -= trailingSpaces;
+          key = trimmedKey;
+        }
+      }
+
       // 判断是否不含特殊字符
       if (excludes.some(k => key.includes(k))) continue;
 
       const current = {
         matchedText: key,
         i18nValue: key,
-        // FIXME 引号导致的定位错误
-        range: new Range(document.positionAt(begin), document.positionAt(end))
+        range: new Range(document.positionAt(start), document.positionAt(end)),
       };
+      
       if (['"', "'", '`'].includes(documentText[begin]) && documentText[begin] === documentText[end]) {
         current.matchedText = `${documentText[begin]}${key}${documentText[end]}`;
-      }
-
-      // 检查是否在JSX表达式中
-      try {
-        // FIXME 这里应该不能写死
-        const AST = getDefaultAST(documentText);
-
-        traverse(AST, {
-          JSXText(path) {
-            const node = path.node;
-            if (node.value.includes(key)) {
-              // 获取完整的JSX文本内容
-              const fullText = node.value.trim();
-              if (fullText !== key) {
-                current.matchedText = fullText;
-                current.i18nValue = fullText;
-              }
-            }
-          },
-        });
-      } catch (error) {
-        // 解析失败时继续使用原始匹配结果
+        current.range = current.range.with(current.range.start.translate(0, -1), current.range.end.translate(0, 1));
       }
 
       result.push(current);
@@ -435,7 +428,7 @@ export const getWorkspaceKey = () => {
 }
 
 let loadingCount = 0;
-export const isLoading = () => loadingCount > 0;
+export const getLoading = () => loadingCount > 0;
 export const setLoading = (loading: boolean, text = ' $(loading~spin) generating...') => {
   loadingCount += loading ? 1 : -1;
   if (loadingCount > 0) {
@@ -448,4 +441,10 @@ export const setLoading = (loading: boolean, text = ' $(loading~spin) generating
 export const checkSupportType = (checkType: SupportType, type?: SupportType) => {
   if (!type) return false;
   return (type & checkType) !== 0;
+}
+
+export const dynamicRequire = (path: string) => {
+  // delete cache
+  delete __non_webpack_require__.cache[__non_webpack_require__.resolve(path)];
+  return __non_webpack_require__(path);
 }

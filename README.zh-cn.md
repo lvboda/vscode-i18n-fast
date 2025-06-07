@@ -30,10 +30,10 @@
 
 - 支持 i18n 回显
 - 支持跳转至 i18n 定义
-- 支持 i18n 冲突处理 (遇到定义过的 i18n 时)
-- 支持读取剪切板文本
-- 理论上支持一切你想要的功能（需自己实现）
-- ~~支持匹配代码里的中文~~ https://github.com/lvboda/vscode-i18n-fast/issues/19
+- 支持 i18n 冲突处理 (重复定义的 i18n)
+- 支持通过剪贴板、光标选中或自定义逻辑进行 i18n 转换
+- 支持批量匹配中文进行 i18n 转换
+- 理论上支持一切你想要的功能（需通过 hook 实现）
 - ~~支持搜索 i18n~~ https://github.com/lvboda/vscode-i18n-fast/issues/1
 
 ## 快速开始
@@ -50,14 +50,14 @@
 
 ### 插件配置
 
-- i18nFilePattern: i18n 文件匹配规则
-- hookFilePattern: hook 文件匹配规则 默认 `.vscode/i18n-fast.hook.js`
-- conflictPolicy: 遇到重复 i18n 时, 如何处理 默认 `smart`
-  - reuse: 复用已有 i18n
-  - ignore: 忽略重复
-  - picker: 弹出选择器手动选择
-  - smart: 如果匹配到一个 i18n 直接复用，匹配到多个弹出选择器手动选择
-- ~~autoMatchChinese: 是否自动匹配中文 默认 `true`~~
+- **i18nFilePattern：** i18n 文件匹配规则
+- **hookFilePattern：** hook 文件匹配规则 默认 `.vscode/i18n-fast.hook.js`
+- **conflictPolicy：** 遇到重复 i18n 时, 如何处理 默认 `smart`
+  - **reuse：** 复用已有 i18n
+  - **ignore：** 忽略重复
+  - **picker：** 弹出选择器手动选择
+  - **smart：** 如果匹配到一个 i18n 直接复用，匹配到多个弹出选择器手动选择
+- **autoMatchChinese：** 是否自动匹配中文 默认 `true`
 
 > i18nFilePattern 一般是以项目为单位来配置的，不同项目应在各自根目录下的 `.vscode/settings.json` 中配置。
 
@@ -82,18 +82,20 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 - [context.uuid](https://www.npmjs.com/package/uuid)
 - [context._](https://www.npmjs.com/package/lodash)
 - [context.babel](https://babeljs.io/docs/babel-parser)
-- context.hook: 当前文件导出的 hook 对象，可以在当前 hook 中调用其他 hook
-- context.i18n: i18n 的存储相关实例，i18n 词条读写
-- context.convert2pinyin: 基于 [tiny-pinyin](https://www.npmjs.com/package/tiny-pinyin) 封装转换中文为拼音的方法
-- context.isInJsxElement: 基于 [babel](https://babeljs.io/docs/babel-parser)  封装判断是否在 JSX 元素内的方法
-- context.isInJsxAttribute: 基于 [babel](https://babeljs.io/docs/babel-parser)  封装判断是否在 JSX 属性内的方法
-- context.writeFileByEditor: 通过编辑器写入文件
-- context.getICUMessageFormatAST: 基于 [formatjs/icu-messageformat-parser](https://www.npmjs.com/package/@formatjs/icu-messageformat-parser) 获取 ICU MessageFormat AST 的方法
-- context.safeCall: 吞掉函数执行抛出的错误
-- context.asyncSafeCall: 同上异步函数
-- context.getConfig: 获取[插件配置](#插件配置)
-- context.setLoading: 设置全局 loading 状态
-- context.showMessage: vscode 弹窗简化版
+- context.hook：当前文件导出的 hook 对象，可以在当前 hook 中调用其他 hook
+- context.i18n：i18n 的存储相关实例，i18n 词条读写
+- context.convert2pinyin：基于 [tiny-pinyin](https://www.npmjs.com/package/tiny-pinyin) 封装转换中文为拼音的方法
+- context.isInJsxElement：基于 [babel](https://babeljs.io/docs/babel-parser) 封装判断是否在 JSX 元素内的方法
+- context.isInJsxAttribute：基于 [babel](https://babeljs.io/docs/babel-parser) 封装判断是否在 JSX 属性内的方法
+- context.writeFileByEditor：通过编辑器写入文件
+- context.getICUMessageFormatAST：基于 [formatjs/icu-messageformat-parser](https://www.npmjs.com/package/@formatjs/icu-messageformat-parser) 获取 ICU MessageFormat AST 的方法
+- context.safeCall：吞掉函数执行抛出的错误
+- context.asyncSafeCall：同上异步函数
+- context.getConfig：获取[插件配置](#插件配置)
+- context.getLoading：获取全局 loading 状态
+- context.setLoading：设置全局 loading 状态
+- context.showMessage：vscode 弹窗简化版
+- context.matchChinese：中文匹配方法（`autoMatchChinese: true` 的实现）
 
 以上列出的是 context 的公共属性，也就是每个 hook 都能拿到，还有一些没有列出来的比如 `context.document`、`context.convertGroups`、`context.i18nFileUri` 等，这些是 hook 执行时特有上下文，具体类型请参考[模版文件](./example/i18n-fast.hook.template.js)中的定义。
 
@@ -133,9 +135,9 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 
 转换命令，将匹配到的文本转换为 i18n 格式。
 
-快捷键：`cmd + option + c` (macOS) / `ctrl + alt + c` (Windows/Linux)
+**快捷键：**`cmd + option + c` (macOS) / `ctrl + alt + c` (Windows/Linux)
 
-执行流程：
+**执行流程：**
 1. 匹配文本（优先级：参数文本 > 光标选中文本 > hook.match + ~~匹配中文~~）
 2. 转换数据 (hook.convert)
 3. 写入文件 (hook.write)
@@ -144,9 +146,9 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 
 粘贴命令，将剪切板文本转换为 i18n 格式粘贴。
 
-快捷键：`cmd + option + v` (macOS) / `ctrl + alt + v` (Windows/Linux)
+**快捷键：**`cmd + option + v` (macOS) / `ctrl + alt + v` (Windows/Linux)
 
-执行流程：
+**执行流程：**
 1. 获取剪切板文本
 2. 调用[`i18n-fast.convert`](#i18n-fastconvert)，入参为剪切板文本
 
@@ -154,7 +156,7 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 
 撤销命令，撤销此次所有文件的写入操作
 
-快捷键：`cmd + option + z` (macOS) / `ctrl + alt + z` (Windows/Linux)
+**快捷键：**`cmd + option + z` (macOS) / `ctrl + alt + z` (Windows/Linux)
 
 > 这个命令目前还有些问题，不是很稳定 https://github.com/lvboda/vscode-i18n-fast/issues/4
 

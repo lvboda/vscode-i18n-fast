@@ -30,10 +30,10 @@ If other i18n plugins cannot meet your requirements and you're willing to invest
 
 - Supports i18n feedback display
 - Supports jumping to i18n definitions
-- Supports i18n conflict resolution (when a duplicate i18n entry is encountered)
-- Supports reading text from the clipboard
-- In theory, supports any functionality you need (to be implemented by yourself)
-- ~~Supports matching Chinese text in code~~ https://github.com/lvboda/vscode-i18n-fast/issues/19
+- Supports i18n conflict resolution (duplicate definitions)
+- Supports i18n conversion via clipboard text, selected text, or custom logic
+- Supports batch matching of Chinese text for i18n conversion
+- Theoretically supports any functionality you want (via hooks)
 - ~~Supports searching i18n~~ https://github.com/lvboda/vscode-i18n-fast/issues/1
 
 ## Quick Start
@@ -57,7 +57,7 @@ After installing the plugin, you need to complete the [plugin configuration](#pl
   - **ignore:** Ignore duplicates
   - **picker:** Pop up a selector for manual choice
   - **smart:** If one matching i18n entry is found, reuse it; if multiple are found, pop up a selector for manual choice
-- ~~**autoMatchChinese:** Whether to automatically match Chinese text, default is `true`~~
+- **autoMatchChinese:** Whether to automatically match Chinese text, default is `true`
 
 > The **i18nFilePattern** is generally configured on a per-project basis in each project’s `.vscode/settings.json`.
 
@@ -82,18 +82,20 @@ The context object shared with hooks is passed as the first argument and include
 - [context.uuid](https://www.npmjs.com/package/uuid)
 - [context._](https://www.npmjs.com/package/lodash)
 - [context.babel](https://babeljs.io/docs/babel-parser)
-- **context.hook:** The hook object exported by the current file, which can call other hooks within the same file
-- **context.i18n:** The instance handling i18n storage for reading and writing i18n entries
-- **context.convert2pinyin:** A method based on [tiny-pinyin](https://www.npmjs.com/package/tiny-pinyin) to convert Chinese characters to pinyin
-- **context.isInJsxElement:** A method based on [babel](https://babeljs.io/docs/babel-parser) to determine if the code is inside a JSX element
-- **context.isInJsxAttribute:** A method based on [babel](https://babeljs.io/docs/babel-parser) to determine if the code is inside a JSX attribute
-- **context.writeFileByEditor:** A method to write files via the editor
-- **context.getICUMessageFormatAST:** A method to get the ICU MessageFormat AST using [@formatjs/icu-messageformat-parser](https://www.npmjs.com/package/@formatjs/icu-messageformat-parser)
-- **context.safeCall:** A helper function to catch and ignore errors thrown during function execution
-- **context.asyncSafeCall:** The async version of safeCall
-- **context.getConfig:** Retrieves the [plugin configuration](#plugin-configuration)
-- **context.setLoading:** Sets a global loading state
-- **context.showMessage:** A simplified version of a VS Code popup message
+- context.hook: The hook object exported by the current file, which can call other hooks within the same file
+- context.i18n: The instance handling i18n storage for reading and writing i18n entries
+- context.convert2pinyin: A method based on [tiny-pinyin](https://www.npmjs.com/package/tiny-pinyin) to convert Chinese characters to pinyin
+- context.isInJsxElement: A method based on [babel](https://babeljs.io/docs/babel-parser) to determine if the code is inside a JSX element
+- context.isInJsxAttribute: A method based on [babel](https://babeljs.io/docs/babel-parser) to determine if the code is inside a JSX attribute
+- context.writeFileByEditor: A method to write files via the editor
+- context.getICUMessageFormatAST: A method to get the ICU MessageFormat AST using [@formatjs/icu-messageformat-parser](https://www.npmjs.com/package/@formatjs/icu-messageformat-parser)
+- context.safeCall: A helper function to catch and ignore errors thrown during function execution
+- context.asyncSafeCall: The async version of safeCall
+- context.getConfig: Retrieves the [plugin configuration](#plugin-configuration)
+- context.getLoading: Get the global loading state
+- context.setLoading: Set the global loading state
+- context.showMessage: A simplified version of a VS Code popup message
+- context.matchChinese: Chinese matching method (implementation of `autoMatchChinese: true`)
 
 The above lists the public properties available to every hook. There are additional properties (such as `context.document`, `context.convertGroups`, `context.i18nFileUri`, etc.) that are specific to the hook execution context; refer to the [template file](./example/i18n-fast.hook.template.js) for detailed definitions.
 

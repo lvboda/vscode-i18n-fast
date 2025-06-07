@@ -1,17 +1,30 @@
 import * as vscode from 'vscode';
-import * as lodash from 'lodash';
-import * as qs from 'qs';
-import * as crypto from 'crypto-js';
 import * as uuid from 'uuid';
 import * as babelParser from '@babel/parser';
 import traverse from '@babel/traverse';
+import lodash from 'lodash';
+import qs from 'qs';
+import crypto from 'crypto-js';
 
 import I18n from './i18n';
 import { getConfig } from './config';
 import { showMessage } from './tips';
 import { FILE_IGNORE } from './constant';
 import Watcher, { WATCH_STATE } from './watcher';
-import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
+import {
+    convert2pinyin,
+    isInJsxElement,
+    isInJsxAttribute,
+    writeFileByEditor,
+    getICUMessageFormatAST,
+    safeCall,
+    asyncSafeCall,
+    getWorkspaceKey,
+    getLoading,
+    setLoading,
+    dynamicRequire,
+    matchChinese,
+} from './utils';
 
 import type { TextDocument, Uri, ExtensionContext } from 'vscode'
 import type { MatchType } from './types/enums';
@@ -24,10 +37,11 @@ class Hook {
     private hookMap: WorkspaceHook = new Map();
     private watcherMap: Map<string, Watcher> = new Map();
     private loading = false;
+    private _onChange?: () => void;
     private static instance: Hook;
 
     static getInstance(): Hook {
-        if (!Hook.instance) Hook.instance = new Hook;
+        if (!Hook.instance) Hook.instance = new Hook();
         return Hook.instance;
     }
 
@@ -47,10 +61,12 @@ class Hook {
         await this.disposeWatcher(workspaceKey);
     }
 
+    onChange(callback: Hook['_onChange']) {
+        this._onChange = callback;
+    }
+
     setHook(workspaceKey: string, path: string) {
-        // 删除 require 缓存
-        delete require.cache[require.resolve(path)];
-        this.hookMap.set(workspaceKey, require(path));
+        this.hookMap.set(workspaceKey, dynamicRequire(path));
     }
 
     async init(extensionContext: ExtensionContext) {
@@ -62,20 +78,12 @@ class Hook {
         hookFilePattern = hookFilePattern || getConfig().hookFilePattern;
         const workspaceKey = getWorkspaceKey();
         if (!workspaceKey) return;
-        this.dispose(workspaceKey);
+        await this.dispose(workspaceKey);
         if (!hookFilePattern) return;
 
         this.loading = true;
         try {
-            const [file] = await vscode.workspace.findFiles(hookFilePattern, FILE_IGNORE);
-            if (!file) {
-                this.hookMap.delete(workspaceKey);
-                return;
-            }
-    
-            this.setHook(workspaceKey, file.fsPath);
-
-            const watcher = await new Watcher().watch(hookFilePattern, async (state, uri) => {
+            const watchCallback = (state: WATCH_STATE, uri: Uri) => {
                 switch (state) {
                     case WATCH_STATE.CHANGE:
                         this.setHook(workspaceKey, uri.fsPath);
@@ -85,9 +93,14 @@ class Hook {
                         break;
                 }
 
-                await I18n.getInstance().reload();
-            });
+                this._onChange?.();
+            };
 
+            // init
+            const [file] = await vscode.workspace.findFiles(hookFilePattern, FILE_IGNORE);
+            if (file) watchCallback(WATCH_STATE.CHANGE, file);
+
+            const watcher = await new Watcher().watch(hookFilePattern, watchCallback);
             this.watcherMap.set(workspaceKey, watcher);
         } catch(error: any) {
             showMessage('warn', `<loadHook error> ${error?.stack}`);
@@ -116,8 +129,10 @@ class Hook {
             safeCall,
             asyncSafeCall,
             getConfig,
+            getLoading,
             setLoading,
             showMessage,
+            matchChinese
         }
     }
 

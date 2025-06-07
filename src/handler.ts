@@ -1,5 +1,5 @@
 import { window, workspace, Range, Uri, MarkdownString, env, commands } from 'vscode';
-import { isNil, max, flatMapDeep, countBy } from 'lodash';
+import { isNil, max, flatMapDeep } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
@@ -11,9 +11,18 @@ import { getConfig } from './config';
 import { asyncInvokeWithErrorHandler } from './error';
 import { MatchType, SupportType, ConvertType, ConflictPolicy } from './types/enums';
 import { COMMAND_CONVERT_KEY, PLUGIN_NAME } from './constant';
-import { AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth, matchChinese, FileSnapshot, isLoading, checkSupportType } from './utils';
+import {
+    AST2readableStr,
+    AST2formattedStr,
+    safeCall,
+    truncateByDisplayWidth,
+    matchChinese,
+    getLoading,
+    checkSupportType,
+    FileSnapshot
+} from './utils';
 
-import type { TextEditor, DecorationOptions } from 'vscode';
+import type { DecorationOptions } from 'vscode';
 import type { ConvertGroup, I18nGroup } from './types';
 
 const i18nKeyConflictDecorationType = window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 0, 0, 0.5)' });
@@ -71,10 +80,9 @@ export const createOnCommandConvertHandler = () => {
         if (!convertGroups.length) {
             convertGroups.push(...await Hook.getInstance().match({ document }));
 
-            // TODO 这里暂时不放开 需要完善
-            // if (getConfig().autoMatchChinese) {
-            //     convertGroups.push(...matchChinese(document));
-            // }
+            if (getConfig().autoMatchChinese) {
+                convertGroups.push(...matchChinese(document));
+            }
         }
 
         if (convertGroups.every(({ i18nValue }) => !i18nValue.trim())) return;
@@ -152,7 +160,7 @@ export const createOnCommandPasteHandler = () => {
 
 export const createOnCommandUndoHandler = () => {
     const handler = async () => {
-        if (isLoading()) return showMessage('info', localize("handler.undo.loading.tip"));
+        if (getLoading()) return showMessage('info', localize("handler.undo.loading.tip"));
 
         for (const { uri, snapshots } of FileSnapshot.getInstance().get()) {
             const firstSnapshot = snapshots.shift();
@@ -182,7 +190,7 @@ const genHoverMessage = ({ value, valueAST, filePath, line, hoverMessage }: I18n
     if (isNil(value) && isNil(valueAST)) return;
     if (hoverMessage) return hoverMessage;
 
-    const ms = new MarkdownString;
+    const ms = new MarkdownString();
     ms.appendMarkdown(`**[${PLUGIN_NAME}]**\n\n`);
     ms.appendCodeblock(valueAST ? safeCall(AST2formattedStr, [valueAST], () => value) : value, 'plaintext');
 
@@ -195,7 +203,7 @@ const genHoverMessage = ({ value, valueAST, filePath, line, hoverMessage }: I18n
 }
 
 export const createOnDidChangeAddDecorationHandler = () => {
-    const handler = async (editor?: TextEditor) => {
+    const handler = async (editor = window.activeTextEditor) => {
         if (!editor?.document) return;
         // 排除掉 i18n 文件
         const { i18nFilePattern } = getConfig();
