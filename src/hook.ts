@@ -11,7 +11,7 @@ import { getConfig } from './config';
 import { showMessage } from './tips';
 import { FILE_IGNORE } from './constant';
 import Watcher, { WATCH_STATE } from './watcher';
-import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading } from './utils';
+import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading, dynamicRequire } from './utils';
 
 import type { TextDocument, Uri, ExtensionContext } from 'vscode'
 import type { MatchType } from './types/enums';
@@ -53,9 +53,7 @@ class Hook {
     }
 
     setHook(workspaceKey: string, path: string) {
-        // 删除 require 缓存
-        delete require.cache[require.resolve(path)];
-        this.hookMap.set(workspaceKey, require(path));
+        this.hookMap.set(workspaceKey, dynamicRequire(path));
     }
 
     async init(extensionContext: ExtensionContext) {

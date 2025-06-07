@@ -418,3 +418,9 @@ export const checkSupportType = (checkType: SupportType, type?: SupportType) => 
   if (!type) return false;
   return (type & checkType) !== 0;
 }
+
+export const dynamicRequire = (path: string) => {
+  // delete cache
+  delete __non_webpack_require__.cache[__non_webpack_require__.resolve(path)];
+  return __non_webpack_require__(path);
+}
