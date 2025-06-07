@@ -14,7 +14,7 @@ export async function activate(context: ExtensionContext) {
 	const onDidChangeAddDecorationHandler = createOnDidChangeAddDecorationHandler();
 	const debouncedOnDidChangeAddDecorationHandler = debounce(onDidChangeAddDecorationHandler, 300);
 
-	I18n.getInstance().onChange(() => onDidChangeAddDecorationHandler());
+	I18n.getInstance().onChange(() => debouncedOnDidChangeAddDecorationHandler());
 	Hook.getInstance().onChange(() => I18n.getInstance().reload());
 
 	await Hook.getInstance().init(context);
