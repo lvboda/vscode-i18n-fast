@@ -71,8 +71,10 @@ const genI18nKey = require('./gen-i18n-key');
  * @property {(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => ReturnType<T>} safeCall - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => Promise<ReturnType<T>>} asyncSafeCall - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {() => Record<string, string>} getConfig - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/config.ts}
- * @property {(loading: boolean, text?: string) => void} setLoading - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts#}
+ * @property {() => boolean} getLoading - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
+ * @property {(loading: boolean, text?: string) => void} setLoading - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
  * @property {(type: "info" | "warn" | "error", message: string, maxLength = 300, ...args: string[]) => void} showMessage - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/tips.ts}
+ * @property {(document: Vscode.TextDocument) => ConvertGroup[]} matchChinese - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
 */
 
 module.exports = {
@@ -172,13 +174,13 @@ module.exports = {
 
                 const content = groups.reduce((pre, { i18nKey, i18nValue }) => {
                     if (i18nKey && i18nValue) {
-                        pre += `'${i18nKey}': '${i18nValue}',`;
+                        pre += `\n  '${i18nKey}': '${i18nValue}',`;
                     }
                     return pre;
                 }, '');
 
                 if (!content) continue;
-                await writeFileByEditor(path, i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `${/module\.exports\s*=\s*{\s*}\s*;/.test(i18nFileContent) ? '' : ','}\n  ${content}\n};`), true);
+                await writeFileByEditor(path, i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `${/module\.exports\s*=\s*{\s*}\s*;/.test(i18nFileContent) ? '' : ','}${content}\n};`), true);
             }
 
             await writeFileByEditor(document.uri, needCreateGroups.map(({ i18nKey, overwriteI18nKeyRanges }) => overwriteI18nKeyRanges.map((range) => ({ range, content: i18nKey }))).flat());

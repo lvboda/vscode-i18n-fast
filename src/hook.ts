@@ -11,7 +11,20 @@ import { getConfig } from './config';
 import { showMessage } from './tips';
 import { FILE_IGNORE } from './constant';
 import Watcher, { WATCH_STATE } from './watcher';
-import { convert2pinyin, isInJsxElement, isInJsxAttribute, writeFileByEditor, getICUMessageFormatAST, safeCall, asyncSafeCall, getWorkspaceKey, setLoading, dynamicRequire } from './utils';
+import {
+    convert2pinyin,
+    isInJsxElement,
+    isInJsxAttribute,
+    writeFileByEditor,
+    getICUMessageFormatAST,
+    safeCall,
+    asyncSafeCall,
+    getWorkspaceKey,
+    getLoading,
+    setLoading,
+    dynamicRequire,
+    matchChinese,
+} from './utils';
 
 import type { TextDocument, Uri, ExtensionContext } from 'vscode'
 import type { MatchType } from './types/enums';
@@ -28,7 +41,7 @@ class Hook {
     private static instance: Hook;
 
     static getInstance(): Hook {
-        if (!Hook.instance) Hook.instance = new Hook;
+        if (!Hook.instance) Hook.instance = new Hook();
         return Hook.instance;
     }
 
@@ -116,8 +129,10 @@ class Hook {
             safeCall,
             asyncSafeCall,
             getConfig,
+            getLoading,
             setLoading,
             showMessage,
+            matchChinese
         }
     }
 

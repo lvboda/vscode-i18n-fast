@@ -19,7 +19,7 @@ export default class I18n {
     private static instance: I18n;
 
     static getInstance(): I18n {
-        if (!I18n.instance) I18n.instance = new I18n;
+        if (!I18n.instance) I18n.instance = new I18n();
         return I18n.instance;
     }
 
@@ -64,6 +64,8 @@ export default class I18n {
                     this.i18nMap.set(workspaceKey, pathMap);
                     break; 
             }
+
+            this._onChange?.();
         };
 
         // init
@@ -71,13 +73,8 @@ export default class I18n {
         for (const uri of i18nFileUris) {
             await watchCallback(WATCH_STATE.CHANGE, uri);
         }
-        // 不放在 cb 里是因为要保持初始化只调用一次
-        this._onChange?.();
 
-        const watcher = await new Watcher().watch(i18nFilePattern, async (state, uri) => {
-            await watchCallback(state, uri);
-            this._onChange?.();
-        });
+        const watcher = await new Watcher().watch(i18nFilePattern, watchCallback);
         this.watcherMap.set(workspaceKey, watcher);
     }
 
