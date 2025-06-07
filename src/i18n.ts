@@ -19,7 +19,7 @@ export default class I18n {
     private static instance: I18n;
 
     static getInstance(): I18n {
-        if (!I18n.instance) I18n.instance = new I18n;
+        if (!I18n.instance) I18n.instance = new I18n();
         return I18n.instance;
     }
 

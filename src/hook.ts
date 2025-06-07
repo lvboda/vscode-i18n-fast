@@ -28,7 +28,7 @@ class Hook {
     private static instance: Hook;
 
     static getInstance(): Hook {
-        if (!Hook.instance) Hook.instance = new Hook;
+        if (!Hook.instance) Hook.instance = new Hook();
         return Hook.instance;
     }
 

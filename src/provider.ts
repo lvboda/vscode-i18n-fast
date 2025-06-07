@@ -30,7 +30,7 @@ export class I18nJumpProvider implements DefinitionProvider {
 
     static getInstance() {
         if (!I18nJumpProvider.instance) {
-            I18nJumpProvider.instance = new I18nJumpProvider;
+            I18nJumpProvider.instance = new I18nJumpProvider();
         }
         return I18nJumpProvider.instance;
     }
@@ -60,7 +60,7 @@ export class MemoryDocumentProvider implements TextDocumentContentProvider {
 
     static getInstance() {
         if (!MemoryDocumentProvider.instance) {
-            MemoryDocumentProvider.instance = new MemoryDocumentProvider;
+            MemoryDocumentProvider.instance = new MemoryDocumentProvider();
         }
         return MemoryDocumentProvider.instance;
     }

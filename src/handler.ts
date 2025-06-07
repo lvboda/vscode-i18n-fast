@@ -187,7 +187,7 @@ const genHoverMessage = ({ value, valueAST, filePath, line, hoverMessage }: I18n
     if (isNil(value) && isNil(valueAST)) return;
     if (hoverMessage) return hoverMessage;
 
-    const ms = new MarkdownString;
+    const ms = new MarkdownString();
     ms.appendMarkdown(`**[${PLUGIN_NAME}]**\n\n`);
     ms.appendCodeblock(valueAST ? safeCall(AST2formattedStr, [valueAST], () => value) : value, 'plaintext');
 
