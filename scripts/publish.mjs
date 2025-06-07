@@ -25,8 +25,8 @@ async function preCheck() {
   console.log(chalk.blue('Starting pre-release check...'));
   
   try {
-    await $`npm run compile`;
-    await $`npm run lint`;
+    await $`pnpm run compile`;
+    await $`pnpm run lint`;
     console.log(chalk.green('✅ Check passed'));
   } catch (error) {
     console.error(chalk.red('❌ Check failed'));
@@ -96,7 +96,7 @@ async function updateChangelog({ targetVersion }) {
 
 async function publishToVscode() {
   console.log(chalk.blue('Publishing to VS Code Marketplace...'));
-  await $`vsce publish`;
+  await $`pnpm npx vsce publish --no-dependencies`;
   console.log(chalk.green('✅ Published to VS Code Marketplace'));
 }
 
@@ -123,7 +123,7 @@ async function publishToGithub({ targetVersion }) {
     targetVersion = (await getPackageJson()).version;
   }
   
-  await $`vsce package`;
+  await $`pnpm run package`;
   const vsixPath = path.join(process.cwd(), `vscode-i18n-fast-${targetVersion}.vsix`);
   
   const { data: release } = await octokit.repos.createRelease({
@@ -153,7 +153,7 @@ async function packageVsix({ targetVersion }) {
 
   const packageJson = await getPackageJson();
   await updateVersion({ targetVersion: targetVersion || semver.inc(packageJson.version, release, identifier, identifierBase) });
-  await $`vsce package`;
+  await $`pnpm run package`;
   await fs.writeFile('package.json', JSON.stringify(packageJson, null, 2) + '\n');
   console.log(chalk.green('✅ Alpha VSIX packaged'));
 }
