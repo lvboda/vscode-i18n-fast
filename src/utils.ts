@@ -1,5 +1,5 @@
 import { workspace, WorkspaceEdit, Range, Uri } from 'vscode';
-import { concat, replace, isNil } from 'lodash';
+import { concat, replace, isNil, cloneDeep } from 'lodash';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import { parse as parseMessageFormat, TYPE, isArgumentElement, isSelectElement, isPluralElement, isPoundElement, isDateElement, isNumberElement, isTimeElement } from '@formatjs/icu-messageformat-parser';
@@ -299,6 +299,7 @@ export const isInJsxAttribute = (input: string | Node, start: number, end: numbe
 
 export class FileSnapshot {
   private map: Map<Uri, { content: Uint8Array, unix: number }[]> = new Map();
+  private static readonly MAX_SNAPSHOTS = 10;
   private static instance: FileSnapshot;
 
   static getInstance() {
@@ -313,11 +314,17 @@ export class FileSnapshot {
       this.map.set(uri, []);
     }
 
-    this.map.get(uri)!.push({ content, unix: Date.now() });
+    const snapshots = this.map.get(uri)!;
+
+    if (snapshots.length >= FileSnapshot.MAX_SNAPSHOTS) {
+      return;
+    }
+
+    this.map.set(uri, [...snapshots, { content, unix: Date.now() }]);
   }
 
   get(uri?: Uri) {
-    return (
+    const snapshots = (
       uri
         ? [[uri, this.map.get(uri) || []] as const]
         : Array.from(this.map.entries())
@@ -325,6 +332,8 @@ export class FileSnapshot {
       uri,
       snapshots: snapshots.sort((a, b) => a.unix - b.unix)
     }));
+
+    return cloneDeep(snapshots);
   }
 
   clear() {
