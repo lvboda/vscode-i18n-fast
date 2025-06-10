@@ -19,7 +19,8 @@ import {
     matchChinese,
     getLoading,
     checkSupportType,
-    FileSnapshot
+    FileSnapshotStack,
+    writeFileByEditor
 } from './utils';
 
 import type { DecorationOptions } from 'vscode';
@@ -64,7 +65,7 @@ export const createOnCommandConvertHandler = () => {
 
         if (!editor) return;
         
-        FileSnapshot.getInstance().clear();
+        FileSnapshotStack.getInstance().next();
         const document = editor.document;
         const documentText = document.getText();
 
@@ -160,16 +161,22 @@ export const createOnCommandPasteHandler = () => {
 
 export const createOnCommandUndoHandler = () => {
     const handler = async () => {
-        if (getLoading()) return showMessage('info', localize("handler.undo.loading.tip"));
-
-        for (const { uri, snapshots } of FileSnapshot.getInstance().get()) {
-            const firstSnapshot = snapshots.shift();
-            if (firstSnapshot) {
-                await workspace.fs.writeFile(uri, firstSnapshot.content);
-            }
+        if (getLoading()) {
+            return showMessage('info', localize("handler.undo.loading.tip"));
         }
 
-        FileSnapshot.getInstance().clear();
+        if (FileSnapshotStack.getInstance().isEmpty()) {
+            return showMessage('info', localize("handler.undo.empty.tip", String(FileSnapshotStack.MAX_SIZE)));
+        }
+
+        const map = FileSnapshotStack.getInstance().pop();
+        if (!map) {
+            return;
+        }
+
+        for (const [uri, snapshot] of map.entries()) {
+            await writeFileByEditor(uri, snapshot, false, false);
+        }
     }
 
     return asyncInvokeWithErrorHandler(handler);

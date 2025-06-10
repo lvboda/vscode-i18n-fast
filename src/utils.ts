@@ -1,5 +1,5 @@
 import { workspace, WorkspaceEdit, Range, Uri } from 'vscode';
-import { concat, replace, isNil, cloneDeep } from 'lodash';
+import { concat, replace, isNil, max } from 'lodash';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import { parse as parseMessageFormat, TYPE, isArgumentElement, isSelectElement, isPluralElement, isPoundElement, isDateElement, isNumberElement, isTimeElement } from '@formatjs/icu-messageformat-parser';
@@ -9,7 +9,7 @@ import stringWidth from 'string-width';
 import { SupportType } from './types/enums';
 import { showStatusBar, hideStatusBar } from './tips';
 
-import type { TextDocument } from 'vscode';
+import type { TextDocument, Disposable } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import type { JSXElement, JSXText, Node } from '@babel/types';
 import type { ConvertGroup } from './types';
@@ -297,56 +297,70 @@ export const isInJsxAttribute = (input: string | Node, start: number, end: numbe
   return inJsxAttribute;
 };
 
-export class FileSnapshot {
-  private map: Map<Uri, { content: Uint8Array, unix: number }[]> = new Map();
-  private static readonly MAX_SNAPSHOTS = 10;
-  private static instance: FileSnapshot;
+export class FileSnapshotStack implements Disposable {
+  private items: Map<Uri, string>[] = [];
+  private index = 0;
+  private static instance: FileSnapshotStack;
+  static readonly MAX_SIZE = 10;
 
   static getInstance() {
-    if (!FileSnapshot.instance) {
-      FileSnapshot.instance = new FileSnapshot;
+    if (!FileSnapshotStack.instance) {
+      FileSnapshotStack.instance = new FileSnapshotStack();
     }
-    return FileSnapshot.instance;
+    return FileSnapshotStack.instance;
   }
 
-  set(uri: Uri, content: Uint8Array) {
-    if (!this.map.has(uri)) {
-      this.map.set(uri, []);
-    }
-
-    const snapshots = this.map.get(uri)!;
-
-    if (snapshots.length >= FileSnapshot.MAX_SNAPSHOTS) {
+  private shift() {
+    if (this.isEmpty()) {
       return;
     }
 
-    this.map.set(uri, [...snapshots, { content, unix: Date.now() }]);
+    this.index--;
+    return this.items.shift();
   }
 
-  get(uri?: Uri) {
-    const snapshots = (
-      uri
-        ? [[uri, this.map.get(uri) || []] as const]
-        : Array.from(this.map.entries())
-    ).map(([uri, snapshots]) => ({
-      uri,
-      snapshots: snapshots.sort((a, b) => a.unix - b.unix)
-    }));
+  pop() {
+    if (this.isEmpty()) {
+      return;
+    }
 
-    return cloneDeep(snapshots);
+    this.index--;
+    return this.items.pop();
   }
 
-  clear() {
-    this.map.clear();
+  push(uri: Uri, snapshot: string) {
+    const index = max([this.index - 1, 0])!;
+    const map = this.items[index] || new Map();
+
+    if (!map.has(uri)) {
+      map.set(uri, snapshot);
+      this.items[index] = map;
+    }
+  }
+
+  next() {
+    this.index++;
+
+    if (this.index === FileSnapshotStack.MAX_SIZE) {
+      this.shift();
+    }
+  }
+
+  dispose() {
+    this.items.length = 0;
+    this.index = 0;
+  }
+
+  isEmpty() {
+    return this.index === 0;
   }
 }
 
-export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false) => {
+export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false, needSnapshot = true) => {
   fileUri = typeof fileUri === 'string' ? Uri.file(fileUri) : fileUri;
 
-  const fileSnapshot = await workspace.fs.readFile(fileUri);
-
   const document = await workspace.openTextDocument(fileUri);
+  const snapshot = document.getText();
   const workspaceEdit = new WorkspaceEdit();
 
   if (Array.isArray(contentOrList)) {
@@ -356,9 +370,14 @@ export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: st
   }
 
   await workspace.applyEdit(workspaceEdit);
-  if (isSave) await document.save();
 
-  FileSnapshot.getInstance().set(fileUri, fileSnapshot);
+  if (isSave) {
+    await document.save();
+  }
+
+  if (needSnapshot) {
+    FileSnapshotStack.getInstance().push(fileUri, snapshot);
+  }
 
   return true;
 };
