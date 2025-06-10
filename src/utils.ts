@@ -1,5 +1,5 @@
 import { workspace, WorkspaceEdit, Range, Uri } from 'vscode';
-import { concat, replace, isNil } from 'lodash';
+import { concat, replace, isNil, max } from 'lodash';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import { parse as parseMessageFormat, TYPE, isArgumentElement, isSelectElement, isPluralElement, isPoundElement, isDateElement, isNumberElement, isTimeElement } from '@formatjs/icu-messageformat-parser';
@@ -9,7 +9,7 @@ import stringWidth from 'string-width';
 import { SupportType } from './types/enums';
 import { showStatusBar, hideStatusBar } from './tips';
 
-import type { TextDocument } from 'vscode';
+import type { TextDocument, Disposable } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import type { JSXElement, JSXText, Node } from '@babel/types';
 import type { ConvertGroup } from './types';
@@ -88,21 +88,27 @@ export const matchChinese = (document: TextDocument) => {
   const excludes = ['v-track:'];
   const endChars = ["'", '"', '`', '\n', '>', '<', '}', '{', '(', ')'];
   const replaceKeys = [[/&nbsp;/g, ""]] as const;
+  
   if (documentText && chineseRegex.test(documentText)) {
     const noteList0 = getNotePositionList(documentText, '<i18n>', '</i18n>');
     const noteList1 = getNotePositionList(documentText, '<!--', '-->');
     const noteList2 = getNotePositionList(documentText, '/*', '*/');
     const noteList3 = getNotePositionList(documentText, '//', '\n');
     const notePositionList = concat(noteList0, noteList1, noteList2, noteList3);
+
     let res = null, nextIndex = -1;
     while (res = chineseRegex2.exec(documentText)) {
       const c = res[0], i = res.index;
       let begin = i - 1, end = i + 1;
       let key = c;
-      if (i < nextIndex) continue;
+      if (i < nextIndex) {
+        continue;
+      }
       // 是否在注释位置
       if (notePositionList.length) {
-        if (notePositionList.find(item => item[0] < i && i < item[1])) continue;
+        if (notePositionList.find(item => item[0] < i && i < item[1])) {
+          continue;
+        }
       }
       // 向前找
       while (!endChars.includes(documentText[begin])) {
@@ -142,7 +148,9 @@ export const matchChinese = (document: TextDocument) => {
       }
 
       // 判断是否不含特殊字符
-      if (excludes.some(k => key.includes(k))) continue;
+      if (excludes.some(k => key.includes(k))) {
+        continue;
+      }
 
       const current = {
         matchedText: key,
@@ -171,7 +179,9 @@ type Convert2pinyinOpt = {
   forceSplit?: boolean;
 }
 export const convert2pinyin = (str: string, opt: Convert2pinyinOpt) => {
-  if (!isSupported()) throw new Error('current environment does not support converting to pinyin.');
+  if (!isSupported()) {
+    throw new Error('current environment does not support converting to pinyin.');
+  }
 
   opt = opt || {};
   opt.lowerCase = opt.lowerCase ?? true;
@@ -223,14 +233,21 @@ export const isInJsxElement = (input: string | Node, start: number, end: number)
   const checkJSXChildren = (node: any) => {
     const nodeStart = node?.openingElement?.end || node?.openingFragment?.end;
     const nodeEnd = node?.closingElement?.start || node?.closingFragment?.start;
-    if (isNil(nodeStart) || isNil(nodeEnd)) return false;
+    if (isNil(nodeStart) || isNil(nodeEnd)) {
+      return false;
+    }
 
     if (start >= nodeStart && end <= nodeEnd) {
       // 兼容 <div></div> 这种空标签
-      if (node.children.length === 0) return true;
+      if (node.children.length === 0) {
+        return true;
+      }
+
       for (const child of node.children) {
-        if (child.type === 'JSXText') return checkJSXText(child);
-      } 
+        if (child.type === 'JSXText') {
+          return checkJSXText(child);
+        }
+      }
     }
 
     return false;
@@ -270,15 +287,27 @@ export const isInJsxAttribute = (input: string | Node, start: number, end: numbe
 
   let inJsxAttribute = false;
   const checkJSXAttribute = (node: JSXElement) => {
-    if (isNil(node.start) || isNil(node.end)) return false;
+    if (isNil(node.start) || isNil(node.end)) {
+      return false;
+    }
 
     if (start >= node.start && end <= node.end) {
       const { attributes } = node.openingElement;
-      if (!attributes) return false;
+      if (!attributes) {
+        return false;
+      }
+
       for (const attr of attributes) {
-        if (attr.type !== 'JSXAttribute' || !attr.value || attr.value.type !== 'StringLiteral') continue;
-        if (isNil(attr.value.start) || isNil(attr.value.end)) continue;
-        if (start >= attr.value.start && end <= attr.value.end) return true;
+        if (attr.type !== 'JSXAttribute' || !attr.value || attr.value.type !== 'StringLiteral') {
+          continue;
+        }
+        if (isNil(attr.value.start) || isNil(attr.value.end)) {
+          continue;
+        }
+
+        if (start >= attr.value.start && end <= attr.value.end) {
+          return true;
+        }
       }
     }
 
@@ -297,18 +326,71 @@ export const isInJsxAttribute = (input: string | Node, start: number, end: numbe
   return inJsxAttribute;
 };
 
-let writeHistory: Uri[] = [];
-export const getWriteHistory = () => writeHistory;
-export const pushWriteHistory = (uri: Uri) => {
-  writeHistory.push(uri);
-}
-export const clearWriteHistory = () => {
-  writeHistory = [];
+export class FileSnapshotStack implements Disposable {
+  private items: Map<Uri, string>[] = [];
+  private index = 0;
+  private static instance: FileSnapshotStack;
+  static readonly MAX_SIZE = 10;
+
+  static getInstance() {
+    if (!FileSnapshotStack.instance) {
+      FileSnapshotStack.instance = new FileSnapshotStack();
+    }
+    
+    return FileSnapshotStack.instance;
+  }
+
+  private shift() {
+    if (this.isEmpty()) {
+      return;
+    }
+
+    this.index--;
+    return this.items.shift();
+  }
+
+  pop() {
+    if (this.isEmpty()) {
+      return;
+    }
+
+    this.index--;
+    return this.items.pop();
+  }
+
+  push(uri: Uri, snapshot: string) {
+    const index = max([this.index - 1, 0])!;
+    const map = this.items[index] || new Map();
+
+    if (!map.has(uri)) {
+      map.set(uri, snapshot);
+      this.items[index] = map;
+    }
+  }
+
+  next() {
+    this.index++;
+
+    if (this.index === FileSnapshotStack.MAX_SIZE) {
+      this.shift();
+    }
+  }
+
+  dispose() {
+    this.items.length = 0;
+    this.index = 0;
+  }
+
+  isEmpty() {
+    return this.index === 0;
+  }
 }
 
-export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false) => {
+export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false, needSnapshot = true) => {
   fileUri = typeof fileUri === 'string' ? Uri.file(fileUri) : fileUri;
+
   const document = await workspace.openTextDocument(fileUri);
+  const snapshot = document.getText();
   const workspaceEdit = new WorkspaceEdit();
 
   if (Array.isArray(contentOrList)) {
@@ -318,8 +400,15 @@ export const writeFileByEditor = async (fileUri: Uri | string, contentOrList: st
   }
 
   await workspace.applyEdit(workspaceEdit);
-  if (isSave) await document.save();
-  pushWriteHistory(fileUri);
+
+  if (isSave) {
+    await document.save();
+  }
+
+  if (needSnapshot) {
+    FileSnapshotStack.getInstance().push(fileUri, snapshot);
+  }
+
   return true;
 };
 
@@ -370,7 +459,7 @@ export const AST2formattedStr = (ast: MessageFormatElement[]) => {
         '\n' + ' '.repeat(indent - 1 < 0 ? 0 : indent - 1) + `}`
       );
     }
-    
+
     return commonProcess(node);
   }
 
@@ -383,7 +472,10 @@ export const truncateByDisplayWidth = (text: string, maxWidth = 60, ellipsis = '
 
   for (const char of text) {
     const charWidth = stringWidth(char);
-    if (width + charWidth > maxWidth) return result + ellipsis;
+
+    if (width + charWidth > maxWidth) {
+      return result + ellipsis;
+    }
 
     width += charWidth;
     result += char;
@@ -408,7 +500,10 @@ export const setLoading = (loading: boolean, text = ' $(loading~spin) generating
 }
 
 export const checkSupportType = (checkType: SupportType, type?: SupportType) => {
-  if (!type) return false;
+  if (!type) {
+    return false;
+  }
+
   return (type & checkType) !== 0;
 }
 

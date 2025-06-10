@@ -3,7 +3,7 @@ import { debounce } from 'lodash';
 
 import Hook from './hook';
 import I18n from './i18n';
-import { getWorkspaceKey } from './utils';
+import { getWorkspaceKey, FileSnapshotStack } from './utils';
 import { I18nJumpProvider, MemoryDocumentProvider } from './provider';
 import { COMMAND_CONVERT_KEY, COMMAND_PASTE_KEY, COMMAND_UNDO_KEY, PLUGIN_NAME } from './constant';
 import { createOnCommandConvertHandler, createOnCommandPasteHandler, createOnCommandUndoHandler, createOnDidChangeAddDecorationHandler } from './handler';
@@ -39,6 +39,8 @@ export async function activate(context: ExtensionContext) {
 }
 
 export async function deactivate() {
+	FileSnapshotStack.getInstance().dispose();
+
 	const workspaceKey = getWorkspaceKey();
 	if (workspaceKey) {
 		await Hook.getInstance().dispose(workspaceKey);

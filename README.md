@@ -156,9 +156,9 @@ The paste command converts text from the clipboard into the i18n format and past
 
 The undo command undoes all file write operations performed in this session.
 
-**Shortcut:** `cmd + option + z` (macOS) / `ctrl + alt + z` (Windows/Linux)
+**Shortcut:** `cmd + option + b` (macOS) / `ctrl + alt + b` (Windows/Linux)
 
-> This command currently has some issues and is not very stable. See https://github.com/lvboda/vscode-i18n-fast/issues/4 for details.
+> Only write operations that call `context.writeFileByEditor` with `needSnapshot` set to true can be undo by this command (by default, `needSnapshot` is true).
 
 ## FAQ
 

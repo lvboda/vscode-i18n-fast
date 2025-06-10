@@ -156,9 +156,9 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 
 撤销命令，撤销此次所有文件的写入操作
 
-**快捷键：**`cmd + option + z` (macOS) / `ctrl + alt + z` (Windows/Linux)
+**快捷键：**`cmd + option + b` (macOS) / `ctrl + alt + b` (Windows/Linux)
 
-> 这个命令目前还有些问题，不是很稳定 https://github.com/lvboda/vscode-i18n-fast/issues/4
+> 只有调用 `context.writeFileByEditor` 并且 `needSnapshot` 为 true 时的写入操作才能被此命令撤回（默认 `needSnapshot` 为 true）
 
 ## FAQ
 

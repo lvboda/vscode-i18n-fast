@@ -100,8 +100,8 @@
       },
       {
         "command": "i18n-fast.undo",
-        "key": "ctrl+alt+z",
-        "mac": "cmd+alt+z",
+        "key": "ctrl+alt+b",
+        "mac": "cmd+alt+b",
         "when": "editorTextFocus"
       }
     ],

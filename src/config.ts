@@ -14,9 +14,7 @@ const defaultConfig: Config = {
 };
 
 const genConfig = (config: WorkspaceConfiguration): Config => {
-    return Object.entries(defaultConfig).reduce((pre, [key]) => {
-        return { ...pre, [key]: config.get(key) };
-    }, defaultConfig);
+    return Object.entries(defaultConfig).reduce((pre, [key]) => ({ ...pre, [key]: config.get(key) }), defaultConfig);
 }
 
 export const getConfig = (): Config => {

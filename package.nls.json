@@ -15,5 +15,6 @@
 
     "handler.ignore": "Ignore",
     "handler.conflict.tip": "There are {0} duplicate i18n keys, please select the processing method...",
-    "handler.undo.loading.tip": "There are still unfinished tasks, please try again later..."
+    "handler.undo.loading.tip": "There are still unfinished tasks, please try again later...",
+    "handler.undo.empty.tip": "There are no undoable tasks or the maximum undo times {0} have been reached."
 }
