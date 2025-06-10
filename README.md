@@ -158,6 +158,8 @@ The undo command undoes all file write operations performed in this session.
 
 **Shortcut:** `cmd + option + b` (macOS) / `ctrl + alt + b` (Windows/Linux)
 
+> Only write operations that call `context.writeFileByEditor` with `needSnapshot` set to true can be undo by this command (by default, `needSnapshot` is true).
+
 ## FAQ
 
 ### I still don't know how to configure it after reading the documentation. What should I do?

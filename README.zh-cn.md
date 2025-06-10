@@ -158,6 +158,8 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 
 **快捷键：**`cmd + option + b` (macOS) / `ctrl + alt + b` (Windows/Linux)
 
+> 只有调用 `context.writeFileByEditor` 并且 `needSnapshot` 为 true 时的写入操作才能被此命令撤回（默认 `needSnapshot` 为 true）
+
 ## FAQ
 
 ### 看了文档还是不知道怎么配置怎么办？
