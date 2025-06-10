@@ -51,7 +51,10 @@ class Hook {
 
     private async disposeWatcher(workspaceKey: string) {
         const watcher = this.watcherMap.get(workspaceKey);
-        if (!watcher) return;
+        if (!watcher) {
+            return;
+        }
+
         await watcher.dispose();
         this.watcherMap.delete(workspaceKey);
     }
@@ -76,10 +79,17 @@ class Hook {
 
     async reload(hookFilePattern?: string) {
         hookFilePattern = hookFilePattern || getConfig().hookFilePattern;
+
         const workspaceKey = getWorkspaceKey();
-        if (!workspaceKey) return;
+        if (!workspaceKey) {
+            return;
+        }
+
         await this.dispose(workspaceKey);
-        if (!hookFilePattern) return;
+
+        if (!hookFilePattern) {
+            return;
+        }
 
         this.loading = true;
         try {
@@ -139,9 +149,15 @@ class Hook {
     private async callHook<T = any>(hookName: string, context: Record<string, any>, defaultResult: T): Promise<T> {
         try {
             const workspaceKey = getWorkspaceKey();
-            if (!workspaceKey) return defaultResult;
+            if (!workspaceKey) {
+                return defaultResult;
+            }
+
             const hook = this.hookMap.get(workspaceKey);
-            if (!hook || !lodash.isFunction(hook[hookName])) return defaultResult;
+            if (!hook || !lodash.isFunction(hook[hookName])) {
+                return defaultResult;
+            }
+            
             return await hook[hookName](this.genContext(context));
         } catch (error: any) {
             showMessage('warn', `<call ${hookName} hook error, please check hook> ${error?.stack}`);

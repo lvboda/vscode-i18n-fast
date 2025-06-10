@@ -88,21 +88,27 @@ export const matchChinese = (document: TextDocument) => {
   const excludes = ['v-track:'];
   const endChars = ["'", '"', '`', '\n', '>', '<', '}', '{', '(', ')'];
   const replaceKeys = [[/&nbsp;/g, ""]] as const;
+  
   if (documentText && chineseRegex.test(documentText)) {
     const noteList0 = getNotePositionList(documentText, '<i18n>', '</i18n>');
     const noteList1 = getNotePositionList(documentText, '<!--', '-->');
     const noteList2 = getNotePositionList(documentText, '/*', '*/');
     const noteList3 = getNotePositionList(documentText, '//', '\n');
     const notePositionList = concat(noteList0, noteList1, noteList2, noteList3);
+
     let res = null, nextIndex = -1;
     while (res = chineseRegex2.exec(documentText)) {
       const c = res[0], i = res.index;
       let begin = i - 1, end = i + 1;
       let key = c;
-      if (i < nextIndex) continue;
+      if (i < nextIndex) {
+        continue;
+      }
       // 是否在注释位置
       if (notePositionList.length) {
-        if (notePositionList.find(item => item[0] < i && i < item[1])) continue;
+        if (notePositionList.find(item => item[0] < i && i < item[1])) {
+          continue;
+        }
       }
       // 向前找
       while (!endChars.includes(documentText[begin])) {
@@ -142,7 +148,9 @@ export const matchChinese = (document: TextDocument) => {
       }
 
       // 判断是否不含特殊字符
-      if (excludes.some(k => key.includes(k))) continue;
+      if (excludes.some(k => key.includes(k))) {
+        continue;
+      }
 
       const current = {
         matchedText: key,
@@ -171,7 +179,9 @@ type Convert2pinyinOpt = {
   forceSplit?: boolean;
 }
 export const convert2pinyin = (str: string, opt: Convert2pinyinOpt) => {
-  if (!isSupported()) throw new Error('current environment does not support converting to pinyin.');
+  if (!isSupported()) {
+    throw new Error('current environment does not support converting to pinyin.');
+  }
 
   opt = opt || {};
   opt.lowerCase = opt.lowerCase ?? true;
@@ -223,13 +233,20 @@ export const isInJsxElement = (input: string | Node, start: number, end: number)
   const checkJSXChildren = (node: any) => {
     const nodeStart = node?.openingElement?.end || node?.openingFragment?.end;
     const nodeEnd = node?.closingElement?.start || node?.closingFragment?.start;
-    if (isNil(nodeStart) || isNil(nodeEnd)) return false;
+    if (isNil(nodeStart) || isNil(nodeEnd)) {
+      return false;
+    }
 
     if (start >= nodeStart && end <= nodeEnd) {
       // 兼容 <div></div> 这种空标签
-      if (node.children.length === 0) return true;
+      if (node.children.length === 0) {
+        return true;
+      }
+
       for (const child of node.children) {
-        if (child.type === 'JSXText') return checkJSXText(child);
+        if (child.type === 'JSXText') {
+          return checkJSXText(child);
+        }
       }
     }
 
@@ -270,15 +287,27 @@ export const isInJsxAttribute = (input: string | Node, start: number, end: numbe
 
   let inJsxAttribute = false;
   const checkJSXAttribute = (node: JSXElement) => {
-    if (isNil(node.start) || isNil(node.end)) return false;
+    if (isNil(node.start) || isNil(node.end)) {
+      return false;
+    }
 
     if (start >= node.start && end <= node.end) {
       const { attributes } = node.openingElement;
-      if (!attributes) return false;
+      if (!attributes) {
+        return false;
+      }
+
       for (const attr of attributes) {
-        if (attr.type !== 'JSXAttribute' || !attr.value || attr.value.type !== 'StringLiteral') continue;
-        if (isNil(attr.value.start) || isNil(attr.value.end)) continue;
-        if (start >= attr.value.start && end <= attr.value.end) return true;
+        if (attr.type !== 'JSXAttribute' || !attr.value || attr.value.type !== 'StringLiteral') {
+          continue;
+        }
+        if (isNil(attr.value.start) || isNil(attr.value.end)) {
+          continue;
+        }
+
+        if (start >= attr.value.start && end <= attr.value.end) {
+          return true;
+        }
       }
     }
 
@@ -307,6 +336,7 @@ export class FileSnapshotStack implements Disposable {
     if (!FileSnapshotStack.instance) {
       FileSnapshotStack.instance = new FileSnapshotStack();
     }
+    
     return FileSnapshotStack.instance;
   }
 
@@ -442,7 +472,10 @@ export const truncateByDisplayWidth = (text: string, maxWidth = 60, ellipsis = '
 
   for (const char of text) {
     const charWidth = stringWidth(char);
-    if (width + charWidth > maxWidth) return result + ellipsis;
+
+    if (width + charWidth > maxWidth) {
+      return result + ellipsis;
+    }
 
     width += charWidth;
     result += char;
@@ -467,7 +500,10 @@ export const setLoading = (loading: boolean, text = ' $(loading~spin) generating
 }
 
 export const checkSupportType = (checkType: SupportType, type?: SupportType) => {
-  if (!type) return false;
+  if (!type) {
+    return false;
+  }
+
   return (type & checkType) !== 0;
 }
 

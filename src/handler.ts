@@ -54,7 +54,9 @@ const getI18nKeyByPicker = async (matchedGroups: I18nGroup[]) => {
         placeHolder: localize("handler.conflict.tip", String(matchedGroups.length)),
     });
 
-    if (res?.key === IGNORE_KEY) return;
+    if (res?.key === IGNORE_KEY) {
+        return;
+    }
 
     return res?.key;
 }
@@ -63,7 +65,9 @@ export const createOnCommandConvertHandler = () => {
     const handler = async (groups?: ConvertGroup[]) => {
         const editor = window.activeTextEditor;
 
-        if (!editor) return;
+        if (!editor) {
+            return;
+        }
         
         FileSnapshotStack.getInstance().next();
         const document = editor.document;
@@ -86,7 +90,9 @@ export const createOnCommandConvertHandler = () => {
             }
         }
 
-        if (convertGroups.every(({ i18nValue }) => !i18nValue.trim())) return;
+        if (convertGroups.every(({ i18nValue }) => !i18nValue.trim())) {
+            return;
+        }
 
         const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
@@ -114,7 +120,9 @@ export const createOnCommandConvertHandler = () => {
 
             // 当有重复 i18n 时
             const matchedGroups = i18nGroups.filter(({ value }) => value === group.i18nValue);
-            if (!group.range || !matchedGroups.length) return group;
+            if (!group.range || !matchedGroups.length) {
+                return group;
+            }
 
             const { conflictPolicy } = getConfig();
             switch(conflictPolicy) {
@@ -122,7 +130,9 @@ export const createOnCommandConvertHandler = () => {
                     return group;
                 case ConflictPolicy.Picker: 
                 case ConflictPolicy.Smart:
-                    if (matchedGroups.length === 1 && conflictPolicy === ConflictPolicy.Smart) return { ...group, i18nKey: matchedGroups[0].key, type: ConvertType.Exist };
+                    if (matchedGroups.length === 1 && conflictPolicy === ConflictPolicy.Smart) {
+                        return { ...group, i18nKey: matchedGroups[0].key, type: ConvertType.Exist };
+                    }
 
                     editor.revealRange(group.range);
                     editor.setDecorations(i18nKeyConflictDecorationType, [{
@@ -151,7 +161,9 @@ export const createOnCommandPasteHandler = () => {
     const handler = async () => {
         const editor = window.activeTextEditor;
         const copiedText = await env.clipboard.readText();
-        if (!editor || !copiedText.trim()) return;
+        if (!editor || !copiedText.trim()) {
+            return;
+        }
 
         await commands.executeCommand(COMMAND_CONVERT_KEY, editor.selections.map((selection) => ({ range: selection, i18nValue: copiedText })));
     }
@@ -183,8 +195,13 @@ export const createOnCommandUndoHandler = () => {
 }
 
 const genRenderOptions = ({ value, valueAST, renderOption }: I18nGroup) => {
-    if (isNil(value) && isNil(valueAST)) return;
-    if (renderOption) return renderOption;
+    if (isNil(value) && isNil(valueAST)) {
+        return;
+    }
+
+    if (renderOption) {
+        return renderOption;
+    }
 
     return {
         after: {
@@ -194,8 +211,13 @@ const genRenderOptions = ({ value, valueAST, renderOption }: I18nGroup) => {
 }
 
 const genHoverMessage = ({ value, valueAST, filePath, line, hoverMessage }: I18nGroup) => {
-    if (isNil(value) && isNil(valueAST)) return;
-    if (hoverMessage) return hoverMessage;
+    if (isNil(value) && isNil(valueAST)) {
+        return;
+    }
+
+    if (hoverMessage) {
+        return hoverMessage;
+    }
 
     const ms = new MarkdownString();
     ms.appendMarkdown(`**[${PLUGIN_NAME}]**\n\n`);
@@ -211,10 +233,14 @@ const genHoverMessage = ({ value, valueAST, filePath, line, hoverMessage }: I18n
 
 export const createOnDidChangeAddDecorationHandler = () => {
     const handler = async (editor = window.activeTextEditor) => {
-        if (!editor?.document) return;
+        if (!editor?.document) {
+            return;
+        }
         // 排除掉 i18n 文件
         const { i18nFilePattern } = getConfig();
-        if (!i18nFilePattern || !workspace.getWorkspaceFolder(editor.document.uri) || !!match([workspace.asRelativePath(editor.document.uri, false)], i18nFilePattern).length) return;
+        if (!i18nFilePattern || !workspace.getWorkspaceFolder(editor.document.uri) || !!match([workspace.asRelativePath(editor.document.uri, false)], i18nFilePattern).length) {
+            return;
+        }
 
         const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
@@ -231,12 +257,16 @@ export const createOnDidChangeAddDecorationHandler = () => {
                 .sort((a, b) => b.keyword.length - a.keyword.length)
                 .reduce<I18nGroup[]>((pre, { keyword, begin, end }) => {
                     const group = i18nGroups.find(({ key }) => key === keyword);
-                    if (!group) return pre;
+                    if (!group) {
+                        return pre;
+                    }
 
                     const offset = editor.document.offsetAt(deltaVisibleRange.start);
                     const range = new Range(editor.document.positionAt(begin + offset), editor.document.positionAt(end + offset));
 
-                    if (processedRanges.some((processedRange) => !!range.intersection(processedRange)) || !range.isSingleLine) return pre;
+                    if (processedRanges.some((processedRange) => !!range.intersection(processedRange)) || !range.isSingleLine) {
+                        return pre;
+                    }
                     processedRanges.push(range);
 
                     return [...pre, { ...group, range }];
@@ -246,7 +276,9 @@ export const createOnDidChangeAddDecorationHandler = () => {
         editor.setDecorations(
             i18nKeyDecorationType,
             (await Hook.getInstance().matchI18n({ type: MatchType.Document, i18nGroups: matchedI18nGroups, document: editor.document })).reduce<DecorationOptions[]>((pre, cur) => {
-                if (!cur.range) return pre;
+                if (!cur.range) {
+                    return pre;
+                }
 
                 const supportType = cur.supportType ?? SupportType.All;
                 return [...pre, {

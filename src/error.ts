@@ -12,6 +12,7 @@ export function asyncInvokeWithErrorHandler<T extends (...args: any[]) => any>(f
         } catch (err: any) {
             panic(err, errorCallback);
         }
+
         return res;
     };
 }
@@ -24,6 +25,7 @@ export function invokeWithErrorHandler<T extends (...args: any[]) => any>(fn: T,
         } catch (err: any) {
             panic(err, errorCallback);
         }
+        
         return res;
     };
 }

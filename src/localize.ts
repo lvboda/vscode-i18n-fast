@@ -73,12 +73,15 @@ export class Localize {
     ): string {
         const filename = format.replace("{0}", `.${candidate}`);
         const filepath = path.resolve(rootPath, filename);
+        
         if (fs.existsSync(filepath)) {
             return filename;
         }
+
         if (candidate.split("-")[0] !== candidate) {
             return this.recurseCandidates(rootPath, format, candidate.split("-")[0]);
         }
+
         return format.replace("{0}", "");
     }
 }

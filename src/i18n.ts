@@ -29,7 +29,10 @@ export default class I18n {
 
     private async disposeWatcher(workspaceKey: string) {
         const watcher = this.watcherMap.get(workspaceKey);
-        if (!watcher) return;
+        if (!watcher) {
+            return;
+        }
+
         await watcher.dispose();
         this.watcherMap.delete(workspaceKey);
     }
@@ -45,10 +48,16 @@ export default class I18n {
 
     async reload(i18nFilePattern?: string) {
         i18nFilePattern = i18nFilePattern || getConfig().i18nFilePattern;
+
         const workspaceKey = getWorkspaceKey();
-        if (!workspaceKey) return;
+        if (!workspaceKey) {
+            return;
+        }
+
         await this.dispose(workspaceKey);
-        if (!i18nFilePattern) return;
+        if (!i18nFilePattern) {
+            return;
+        }
 
         const watchCallback = async (state: WATCH_STATE, uri: Uri) => {
             const pathMap = this.i18nMap.get(workspaceKey) || new Map();
@@ -85,7 +94,10 @@ export default class I18n {
     }
 
     getI18nGroups(workspaceKey = getWorkspaceKey()): I18nGroup[] {
-        if (!workspaceKey) return [];
+        if (!workspaceKey) {
+            return [];
+        }
+        
         return Array.from(this.get(workspaceKey)?.entries() || [])
             .map(([filePath, groups]) => groups?.map((item) => ({ filePath, ...item })) || [])
             .flat();
