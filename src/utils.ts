@@ -512,3 +512,11 @@ export const dynamicRequire = (path: string) => {
   delete __non_webpack_require__.cache[__non_webpack_require__.resolve(path)];
   return __non_webpack_require__(path);
 }
+
+export const asyncMap = async <T, R>(array: T[], fn: (item: T) => Promise<R>): Promise<R[]> => {
+    return array.reduce(async (promise, item) => {
+        const results = await promise;
+        const result = await fn(item);
+        return [...results, result];
+    }, Promise.resolve([] as R[]));
+}

@@ -20,7 +20,8 @@ import {
     getLoading,
     checkSupportType,
     FileSnapshotStack,
-    writeFileByEditor
+    writeFileByEditor,
+    asyncMap
 } from './utils';
 
 import type { DecorationOptions } from 'vscode';
@@ -96,7 +97,7 @@ export const createOnCommandConvertHandler = () => {
 
         const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
-        convertGroups = await Promise.all(convertGroups.map(async (group) => {
+        convertGroups = await asyncMap(convertGroups, async (group) => {
             group.type = ConvertType.New;
             // 匹配 range
             if (!group.range && group.matchedText) {
@@ -147,7 +148,7 @@ export const createOnCommandConvertHandler = () => {
                 default:
                     return { ...group, i18nKey: matchedGroups[0].key, type: ConvertType.Exist };
             }
-        }));
+        });
 
         convertGroups = await Hook.getInstance().convert({ convertGroups, document });
 
