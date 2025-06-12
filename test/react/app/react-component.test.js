@@ -6,6 +6,7 @@ const Component = (props) => {
     return (
         <div>
             <div>{name}</div>
+            <FormattedMessage id="app.ads.report.ads" />
             <div>{formatMessage({ id: 'app.ads.hour-report-data-des-tooltip' })}</div>
             <div>{formatMessage({ id: 'app.test.testing' })}</div>
         </div>

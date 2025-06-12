@@ -13,8 +13,10 @@
     "error.feedback": "反馈此问题",
     "error.close": "关闭",
 
+    "handler.use": "使用 {0}",
     "handler.ignore": "忽略",
-    "handler.conflict.picker.title": "存在{0}个重复i18n, 请选择处理方式...",
+    "handler.skip": "跳过",
+    "handler.conflict.tip": "存在 {0} 个重复 i18n（{1}）, 请选择处理方式...",
     "handler.undo.loading.tip": "当前还有未完成的任务, 请稍后重试...",
     "handler.undo.empty.tip": "没有可撤回的任务或达到最大可撤回次数 {0} 次"
 }

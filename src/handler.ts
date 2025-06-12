@@ -45,19 +45,28 @@ const i18nKeyDecorationType = window.createTextEditorDecorationType({
     }
 });
 
-const IGNORE_KEY = 'IGNORE';
-const getI18nKeyByPicker = async (matchedGroups: I18nGroup[]) => {
-    const res = await window.showQuickPick([...matchedGroups.map(({ key, filePath, line }) => ({
-        key,
-        label: key,
-        description: filePath ? `${workspace.asRelativePath(filePath, false)}${isNil(line) ? '' : `:${line}`}` : ''
-    })), { key: IGNORE_KEY, label: localize("handler.ignore") }], {
-        placeHolder: localize("handler.conflict.tip", String(matchedGroups.length)),
-    });
+const IGNORE_KEY = Symbol('ignore');
+const SKIP_KEY = Symbol('skip');
 
-    if (res?.key === IGNORE_KEY) {
-        return;
-    }
+const getI18nKeyByPicker = async (matchedGroups: I18nGroup[]) => {
+    const res = await window.showQuickPick(
+        [...matchedGroups.map(({ key, filePath, line }) => ({
+            key,
+            label: localize("handler.use", key),
+            description: filePath ? `${workspace.asRelativePath(filePath, false)}${isNil(line) ? '' : `:${line}`}` : ''
+        })),
+        {
+            key: IGNORE_KEY,
+            label: localize("handler.ignore")
+        },
+        {
+            key: SKIP_KEY,
+            label: localize("handler.skip")
+        }],
+        {
+            placeHolder: localize("handler.conflict.tip", String(matchedGroups.length), matchedGroups[0].value),
+        }
+    );
 
     return res?.key;
 }
@@ -69,7 +78,7 @@ export const createOnCommandConvertHandler = () => {
         if (!editor) {
             return;
         }
-        
+
         FileSnapshotStack.getInstance().next();
         const document = editor.document;
         const documentText = document.getText();
@@ -97,7 +106,7 @@ export const createOnCommandConvertHandler = () => {
 
         const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
-        convertGroups = await asyncMap(convertGroups, async (group) => {
+        convertGroups = (await asyncMap(convertGroups, async (group) => {
             group.type = ConvertType.New;
             // 匹配 range
             if (!group.range && group.matchedText) {
@@ -108,13 +117,13 @@ export const createOnCommandConvertHandler = () => {
                         document.positionAt(index),
                         document.positionAt(index + group.matchedText.length)
                     );
-        
+
                     if (!processedRanges.some((processedRange) => !!range.intersection(processedRange))) {
                         processedRanges.push(range);
                         group.range = range;
                         break;
                     }
-        
+
                     index = documentText.indexOf(group.matchedText, index + group.matchedText.length);
                 }
             }
@@ -126,29 +135,49 @@ export const createOnCommandConvertHandler = () => {
             }
 
             const { conflictPolicy } = getConfig();
-            switch(conflictPolicy) {
+            switch (conflictPolicy) {
                 case ConflictPolicy.Ignore:
                     return group;
-                case ConflictPolicy.Picker: 
+                case ConflictPolicy.Picker:
                 case ConflictPolicy.Smart:
                     if (matchedGroups.length === 1 && conflictPolicy === ConflictPolicy.Smart) {
-                        return { ...group, i18nKey: matchedGroups[0].key, type: ConvertType.Exist };
+                        return {
+                            ...group,
+                            i18nKey: matchedGroups[0].key,
+                            type: ConvertType.Exist
+                        };
                     }
 
                     editor.revealRange(group.range);
                     editor.setDecorations(i18nKeyConflictDecorationType, [{
                         range: group.range,
                         // 空范围也显示出来
-                        renderOptions: group.range.start.isEqual(group.range.end) ? { after: { contentText: '', width: '10px', height: '100%',  backgroundColor: 'rgba(255, 0, 0, 0.5)' } } : void 0
+                        renderOptions: group.range.start.isEqual(group.range.end) ? { after: { contentText: '', width: '10px', height: '100%', backgroundColor: 'rgba(255, 0, 0, 0.5)' } } : void 0
                     }]);
+
                     const i18nKey = await getI18nKeyByPicker(matchedGroups);
                     editor.setDecorations(i18nKeyConflictDecorationType, []);
-                    return { ...group, i18nKey: i18nKey || group.i18nKey, type: !!i18nKey ? ConvertType.Exist : ConvertType.New };
+
+                    if (i18nKey === SKIP_KEY) {
+                        return null;
+                    }
+
+                    if (i18nKey === IGNORE_KEY) {
+                        return {
+                            ...group,
+                            type: ConvertType.Exist
+                        };
+                    }
+
+                    return {
+                        ...group,
+                        type: ConvertType.New
+                    };
                 case ConflictPolicy.Reuse:
                 default:
                     return { ...group, i18nKey: matchedGroups[0].key, type: ConvertType.Exist };
             }
-        });
+        })).filter((group) => !!group);
 
         convertGroups = await Hook.getInstance().convert({ convertGroups, document });
 
