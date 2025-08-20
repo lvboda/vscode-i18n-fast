@@ -78,6 +78,14 @@ Each example includes a complete `.vscode/i18n-fast.hook.js` implementation.
 
 ## Important Patterns
 
+### Batch Matching & Conversion
+The extension supports batch matching and conversion of multiple text entries in a single operation:
+- Groups text entries by value to avoid duplicate processing
+- Handles conflict resolution for each unique text value
+- Processes all conversions sequentially using `asyncMap`
+- Supports automatic Chinese text matching when enabled
+- Priority: provided groups > selected text > hook.match > Chinese matching
+
 ### File Operations
 Always use `FileSnapshotStack` for undoable operations:
 ```typescript
