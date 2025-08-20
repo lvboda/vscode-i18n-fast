@@ -9,8 +9,8 @@ import crypto from 'crypto-js';
 import I18n from './i18n';
 import { getConfig } from './config';
 import { showMessage } from './tips';
-import { FILE_IGNORE } from './constant';
-import Watcher, { WATCH_STATE } from './watcher';
+import { FILE_IGNORE, WatchState } from './constant';
+import Watcher from './watcher';
 import {
     convert2pinyin,
     isInJsxElement,
@@ -27,7 +27,7 @@ import {
 } from './utils';
 
 import type { TextDocument, Uri, ExtensionContext } from 'vscode'
-import type { MatchType } from './types/enums';
+import type { MatchType } from './constant';
 import type { ConvertGroup, I18nGroup } from './types';
 
 type WorkspaceHook = Map<string, Record<string, (context: Record<string, any>) => any>>;
@@ -93,12 +93,12 @@ class Hook {
 
         this.loading = true;
         try {
-            const watchCallback = (state: WATCH_STATE, uri: Uri) => {
+            const watchCallback = (state: WatchState, uri: Uri) => {
                 switch (state) {
-                    case WATCH_STATE.CHANGE:
+                    case WatchState.Change:
                         this.setHook(workspaceKey, uri.fsPath);
                         break;
-                    case WATCH_STATE.DELETE:
+                    case WatchState.Delete:
                         this.hookMap.delete(workspaceKey);
                         break;
                 }
@@ -108,7 +108,7 @@ class Hook {
 
             // init
             const [file] = await vscode.workspace.findFiles(hookFilePattern, FILE_IGNORE);
-            if (file) watchCallback(WATCH_STATE.CHANGE, file);
+            if (file) watchCallback(WatchState.Change, file);
 
             const watcher = await new Watcher().watch(hookFilePattern, watchCallback);
             this.watcherMap.set(workspaceKey, watcher);

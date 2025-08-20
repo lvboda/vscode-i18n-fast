@@ -15,7 +15,7 @@ import {
     safeCall,
     truncateByDisplayWidth
 } from '../utils';
-import { MatchType, SupportType } from '../types/enums';
+import { MatchType, SupportType } from '../constant';
 import { translationDecorationType } from './decorations';
 
 import type { DecorationOptions } from 'vscode';

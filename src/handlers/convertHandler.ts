@@ -12,7 +12,7 @@ import {
     asyncMap,
     matchChinese 
 } from '../utils';
-import { ConflictPolicy, ConvertType } from '../types/enums';
+import { ConflictPolicy, ConvertType } from '../constant';
 
 import type { TextDocument } from 'vscode';
 import type { ConvertGroup, I18nGroup } from '../types';

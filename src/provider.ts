@@ -7,7 +7,7 @@ import Hook from './hook';
 import I18n from './i18n';
 import { getConfig } from './config';
 import { checkSupportType } from './utils';
-import { MatchType, SupportType } from './types/enums';
+import { MatchType, SupportType } from './constant';
 
 import type { TextDocumentContentProvider, DefinitionProvider, TextDocument } from 'vscode';
 import type { I18nGroup } from './types';

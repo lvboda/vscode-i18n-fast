@@ -1,7 +1,7 @@
 import { workspace } from 'vscode';
 
 import { PLUGIN_NAME } from "./constant";
-import { ConflictPolicy } from './types/enums';
+import { ConflictPolicy } from './constant';
 
 import type { WorkspaceConfiguration } from "vscode";
 import type { Config } from './types';

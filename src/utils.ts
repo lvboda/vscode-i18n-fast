@@ -6,7 +6,7 @@ import { parse as parseMessageFormat, TYPE, isArgumentElement, isSelectElement, 
 import { isSupported, convertToPinyin } from 'tiny-pinyin';
 import stringWidth from 'string-width';
 
-import { SupportType } from './types/enums';
+import { SupportType } from './constant';
 import { showStatusBar, hideStatusBar } from './tips';
 
 import type { TextDocument, Disposable } from 'vscode';
