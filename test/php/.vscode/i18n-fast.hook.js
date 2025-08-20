@@ -145,7 +145,9 @@ module.exports = {
         const i18nFilePaths = (await vscode.workspace.findFiles(getConfig().i18nFilePattern)).map(({ fsPath }) => fsPath);
         const toBeWrittenI18nFilePath = _.sample(i18nFilePaths.filter((path) => /erp_lang\.php/.test(path)));
         const commonFilePath = i18nFilePaths.find((path) => _.endsWith(path, 'common_lang.php'));
-        genI18nKey(needCreateGroups.map(({ i18nValue }) => ({ text: i18nValue, path: document.uri.fsPath }))).then(async (generated) => {
+        genI18nKey(
+            _.uniqBy(needCreateGroups, 'i18nValue').map(({ i18nValue }) => ({ text: i18nValue, path: document.uri.fsPath }))
+        ).then(async (generated) => {
             needCreateGroups = needCreateGroups
                 .map((group) => {
                     const { i18nKey, isCommon } = generated.find(({ originalText }) => originalText === group.i18nValue) || {};
@@ -172,11 +174,12 @@ module.exports = {
                 const path = groups[0].isCommon ? commonFilePath : toBeWrittenI18nFilePath;
                 let i18nFileContent = (await vscode.workspace.fs.readFile(vscode.Uri.file(path))).toString();
 
-                groups.forEach(({ i18nKey, i18nValue }) => {
-                    if (i18nKey && i18nValue) {
-                        i18nFileContent += `\n$lang['${i18nKey}'] = '${i18nValue}'; //pgjs`;
-                    }
-                });
+                _.unionBy(groups, item => `${item.i18nKey}_${item.i18nValue}`)
+                    .forEach(({ i18nKey, i18nValue }) => {
+                        if (i18nKey && i18nValue) {
+                            i18nFileContent += `\n$lang['${i18nKey}'] = '${i18nValue}'; //pgjs`;
+                        }
+                    });
 
                 await writeFileByEditor(path, i18nFileContent, true);
             }

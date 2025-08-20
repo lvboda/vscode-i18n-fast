@@ -135,7 +135,7 @@ module.exports = {
 
         setLoading(true);
         genI18nKey(
-            needCreateGroups.map(({ i18nValue }) => ({ text: i18nValue, path: document.uri.fsPath })),
+            _.uniqBy(needCreateGroups, 'i18nValue').map(({ i18nValue }) => ({ text: i18nValue, path: document.uri.fsPath })),
             (await vscode.workspace.findFiles(getConfig().i18nFilePattern)).map(({ fsPath }) => fsPath)
         ).then(async (generated) => {
             needCreateGroups = needCreateGroups
@@ -172,12 +172,13 @@ module.exports = {
                     i18nFileContent = 'module.exports = {\n};';
                 }
 
-                const content = groups.reduce((pre, { i18nKey, i18nValue }) => {
-                    if (i18nKey && i18nValue) {
-                        pre += `\n  '${i18nKey}': '${i18nValue}',`;
-                    }
-                    return pre;
-                }, '');
+                const content = _.unionBy(groups, item => `${item.i18nKey}_${item.i18nValue}`)
+                    .reduce((pre, { i18nKey, i18nValue }) => {
+                        if (i18nKey && i18nValue) {
+                            pre += `\n  '${i18nKey}': '${i18nValue}',`;
+                        }
+                        return pre;
+                    }, '');
 
                 if (!content) continue;
                 await writeFileByEditor(path, i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `${/module\.exports\s*=\s*{\s*}\s*;/.test(i18nFileContent) ? '' : ','}${content}\n};`), true);
