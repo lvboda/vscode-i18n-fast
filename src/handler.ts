@@ -1,5 +1,5 @@
 import { window, workspace, Range, Uri, MarkdownString, env, commands } from 'vscode';
-import { isNil, max, flatMapDeep } from 'lodash';
+import { isNil, max, flatMapDeep, groupBy } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
@@ -82,6 +82,7 @@ export const createOnCommandConvertHandler = () => {
         FileSnapshotStack.getInstance().next();
         const document = editor.document;
         const documentText = document.getText();
+        const { autoMatchChinese, conflictPolicy } = getConfig();
 
         // 参数 > 选中 > 当前文件的自定义匹配 > 当前文件的中文匹配
         let convertGroups = groups || editor.selections.reduce<ConvertGroup[]>((pre, cur) => {
@@ -95,7 +96,7 @@ export const createOnCommandConvertHandler = () => {
         if (!convertGroups.length) {
             convertGroups.push(...await Hook.getInstance().match({ document }));
 
-            if (getConfig().autoMatchChinese) {
+            if (autoMatchChinese) {
                 convertGroups.push(...matchChinese(document));
             }
         }
@@ -106,78 +107,89 @@ export const createOnCommandConvertHandler = () => {
 
         const i18nGroups = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
-        convertGroups = (await asyncMap(convertGroups, async (group) => {
-            group.type = ConvertType.New;
-            // 匹配 range
-            if (!group.range && group.matchedText) {
-                let index = documentText.indexOf(group.matchedText);
 
-                while (index !== -1) {
-                    const range = new Range(
-                        document.positionAt(index),
-                        document.positionAt(index + group.matchedText.length)
-                    );
+        convertGroups = (await asyncMap(Object.entries(groupBy(convertGroups, 'i18nValue')), async ([i18nValue, groups]) => {
+            const matchedGroups = i18nGroups.filter(({ value }) => value === i18nValue);
 
-                    if (!processedRanges.some((processedRange) => !!range.intersection(processedRange))) {
-                        processedRanges.push(range);
-                        group.range = range;
-                        break;
+            const newGroups = groups
+                .map((group) => {
+                    group.type = ConvertType.New;
+
+                    // 匹配 range
+                    if (!group.range && group.matchedText) {
+                        let index = documentText.indexOf(group.matchedText);
+
+                        while (index !== -1) {
+                            const range = new Range(
+                                document.positionAt(index),
+                                document.positionAt(index + group.matchedText.length)
+                            );
+
+                            if (!processedRanges.some((processedRange) => !!range.intersection(processedRange))) {
+                                processedRanges.push(range);
+                                group.range = range;
+                                break;
+                            }
+
+                            index = documentText.indexOf(group.matchedText, index + group.matchedText.length);
+                        }
                     }
 
-                    index = documentText.indexOf(group.matchedText, index + group.matchedText.length);
-                }
+                    return group;
+                });
+
+            if (!matchedGroups.length || newGroups.every(({ range }) => !range)) {
+                return newGroups;
             }
 
-            // 当有重复 i18n 时
-            const matchedGroups = i18nGroups.filter(({ value }) => value === group.i18nValue);
-            if (!group.range || !matchedGroups.length) {
-                return group;
-            }
-
-            const { conflictPolicy } = getConfig();
             switch (conflictPolicy) {
                 case ConflictPolicy.Ignore:
-                    return group;
+                    return newGroups;
                 case ConflictPolicy.Picker:
                 case ConflictPolicy.Smart:
                     if (matchedGroups.length === 1 && conflictPolicy === ConflictPolicy.Smart) {
-                        return {
+                        return newGroups.map((group) => ({
                             ...group,
                             i18nKey: matchedGroups[0].key,
-                            type: ConvertType.Exist
-                        };
+                            type: ConvertType.Exist,
+                        }));
                     }
 
-                    editor.revealRange(group.range);
-                    editor.setDecorations(i18nKeyConflictDecorationType, [{
-                        range: group.range,
+                    editor.revealRange(newGroups.find(({ range }) => !!range)?.range!);
+                    editor.setDecorations(i18nKeyConflictDecorationType, newGroups.filter(({ range }) => !!range).map((group) => ({
+                        range: group.range!,
                         // 空范围也显示出来
-                        renderOptions: group.range.start.isEqual(group.range.end) ? { after: { contentText: '', width: '10px', height: '100%', backgroundColor: 'rgba(255, 0, 0, 0.5)' } } : void 0
-                    }]);
+                        renderOptions: group.range!.start.isEqual(group.range!.end) ? { after: { contentText: '', width: '10px', height: '100%', backgroundColor: 'rgba(255, 0, 0, 0.5)' } } : void 0
+                    })));
 
                     const i18nKey = await getI18nKeyByPicker(matchedGroups);
                     editor.setDecorations(i18nKeyConflictDecorationType, []);
 
                     if (i18nKey === SKIP_KEY) {
-                        return null;
+                        return [];
                     }
 
                     if (i18nKey === IGNORE_KEY) {
-                        return {
+                        return newGroups.map((group) => ({
                             ...group,
-                            type: ConvertType.Exist
-                        };
+                            type: ConvertType.New
+                        }));
                     }
 
-                    return {
+                    return newGroups.map((group) => ({
                         ...group,
-                        type: ConvertType.New
-                    };
+                        i18nKey: String(i18nKey) || group.i18nKey,
+                        type: ConvertType.Exist
+                    }));
                 case ConflictPolicy.Reuse:
                 default:
-                    return { ...group, i18nKey: matchedGroups[0].key, type: ConvertType.Exist };
+                    return newGroups.map((group) => ({
+                        ...group,
+                        i18nKey: matchedGroups[0].key,
+                        type: ConvertType.Exist
+                    }));
             }
-        })).filter((group) => !!group);
+        })).flat();
 
         convertGroups = await Hook.getInstance().convert({ convertGroups, document });
 
