@@ -79,13 +79,17 @@ const generateHoverMessage = (i18nGroup: I18nGroup) => {
  */
 export const createDecorationHandler = () => {
     const handler = async (editor = window.activeTextEditor) => {
-        if (!editor?.document) return;
+        if (!editor?.document) {
+            return;
+        }
 
         const { i18nFilePattern } = getConfig();
         
-        if (!i18nFilePattern || 
+        if (
+            !i18nFilePattern || 
             !workspace.getWorkspaceFolder(editor.document.uri) ||
-            match([workspace.asRelativePath(editor.document.uri, false)], i18nFilePattern).length > 0) {
+            match([workspace.asRelativePath(editor.document.uri, false)], i18nFilePattern).length > 0
+        ) {
             return;
         }
 
@@ -178,7 +182,9 @@ const findI18nKeysInRange = (
  */
 const createDecorations = (i18nEntries: I18nGroup[]): DecorationOptions[] => {
     return i18nEntries.reduce<DecorationOptions[]>((decorations, entry) => {
-        if (!entry.range) return decorations;
+        if (!entry.range) {
+            return decorations;
+        }
         
         const supportType = entry.supportType ?? SupportType.All;
         

@@ -61,7 +61,9 @@ const collectTextToConvert = async (
     providedGroups?: ConvertGroup[]
 ): Promise<ConvertGroup[]> => {
     const editor = window.activeTextEditor;
-    if (!editor) return [];
+    if (!editor) {
+        return [];
+    }
 
     if (providedGroups?.length) {
         return providedGroups;
@@ -132,7 +134,9 @@ const highlightConflictsAndWaitForChoice = async (
     existingEntries: I18nGroup[]
 ): Promise<symbol | string | undefined> => {
     const validGroups = groups.filter(g => g.range);
-    if (!validGroups.length) return;
+    if (!validGroups.length) {
+        return;
+    }
 
     const firstRange = validGroups[0].range!;
     editor.revealRange(firstRange);
@@ -228,7 +232,9 @@ const resolveConflictsByPolicy = async (
 export const createConvertHandler = () => {
     const handler = async (providedGroups?: ConvertGroup[]) => {
         const editor = window.activeTextEditor;
-        if (!editor) return;
+        if (!editor) {
+            return;
+        }
 
         FileSnapshotStack.getInstance().next();
         

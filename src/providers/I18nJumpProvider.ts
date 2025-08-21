@@ -47,7 +47,10 @@ export class I18nJumpProvider implements DefinitionProvider {
     async provideDefinition(document: TextDocument, position: Position) {
         // 排除掉 i18n 文件
         const { i18nFilePattern } = getConfig();
-        if (!workspace.getWorkspaceFolder(document.uri) || !!match([workspace.asRelativePath(document.uri, false)], i18nFilePattern).length) {
+        if (
+            !workspace.getWorkspaceFolder(document.uri) || 
+            !!match([workspace.asRelativePath(document.uri, false)], i18nFilePattern).length
+        ) {
             return;
         }
 

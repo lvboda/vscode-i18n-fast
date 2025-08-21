@@ -12,10 +12,14 @@ import type { ConvertGroup } from '@/types';
 export const createPasteHandler = () => {
     const handler = async () => {
         const editor = window.activeTextEditor;
-        if (!editor) return;
+        if (!editor) {
+            return;
+        }
 
         const clipboardText = await env.clipboard.readText();
-        if (!clipboardText.trim()) return;
+        if (!clipboardText.trim()) {
+            return;
+        }
 
         const convertGroups: ConvertGroup[] = editor.selections.map(selection => ({
             range: selection,

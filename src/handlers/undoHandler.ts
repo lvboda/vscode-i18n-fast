@@ -23,7 +23,9 @@ export const createUndoHandler = () => {
         }
 
         const snapshotMap = snapshotStack.pop();
-        if (!snapshotMap) return;
+        if (!snapshotMap) {
+            return;
+        }
 
         for (const [uri, content] of snapshotMap.entries()) {
             await writeFileByEditor(uri, content, false, false);
