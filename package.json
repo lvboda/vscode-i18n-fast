@@ -2,7 +2,7 @@
   "name": "vscode-i18n-fast",
   "displayName": "I18n Fast",
   "description": "%package.description%",
-  "version": "0.0.12",
+  "version": "1.0.0",
   "publisher": "lvboda",
   "author": {
     "name": "Boda Lü",
