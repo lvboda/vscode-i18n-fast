@@ -20,9 +20,8 @@ export class MemoryDocumentProvider implements TextDocumentContentProvider {
         const memoryDocumentProvider = MemoryDocumentProvider.getInstance();
         const documentUri = uri || Uri.parse('memory://temp-document');
         memoryDocumentProvider.updateDocument(documentUri, documentText);
-        const document = await workspace.openTextDocument(documentUri);
-
-        return document;
+        
+        return await workspace.openTextDocument(documentUri);
     }
 
     private _onDidChange = new EventEmitter<Uri>();
