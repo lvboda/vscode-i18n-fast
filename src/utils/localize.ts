@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { extensions } from "vscode";
 
-import { PLUGIN_PUBLISHER, PLUGIN_FULL_NAME } from './constant';
+import { PLUGIN_PUBLISHER, PLUGIN_FULL_NAME } from '@/utils/constant';
 
 export class Localize {
     private bundle = this.resolveLanguagePack();

@@ -13,8 +13,12 @@
     "error.feedback": "Feedback",
     "error.close": "Close",
 
+    "handler.use": "Use {0}",
     "handler.ignore": "Ignore",
-    "handler.conflict.tip": "There are {0} duplicate i18n keys, please select the processing method...",
+    "handler.ignore.desc": "Ignore duplicate, continue conversion",
+    "handler.skip": "Skip",
+    "handler.skip.desc": "Skip this text",
+    "handler.conflict.tip": "There are {0} duplicate i18n keys with value \"{1}\", please select the processing method...",
     "handler.undo.loading.tip": "There are still unfinished tasks, please try again later...",
     "handler.undo.empty.tip": "There are no undoable tasks or the maximum undo times {0} have been reached."
 }

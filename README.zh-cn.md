@@ -4,7 +4,7 @@
 
 # I18n Fast
 
-[![](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/lvboda/vscode-i18n-fast)  [![](https://badgen.net/github/license/lvboda/vscode-i18n-fast?color=green)](./LICENSE)  [![](https://badgen.net/vs-marketplace/i/lvboda.vscode-i18n-fast?color=red)](https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast)  [![](https://badgen.net/vs-marketplace/v/lvboda.vscode-i18n-fast?color=pink)](https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast)
+[![](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/lvboda/vscode-i18n-fast)  [![](https://badgen.net/github/license/lvboda/vscode-i18n-fast?color=green)](./LICENSE)  [![](https://badgen.net/vs-marketplace/d/lvboda.vscode-i18n-fast?color=red)](https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast)  [![](https://badgen.net/vs-marketplace/v/lvboda.vscode-i18n-fast?color=pink)](https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast)
 
 一个 hook 驱动的 i18n 生成插件，满足多种国际化开发场景。
 
@@ -138,7 +138,7 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 **快捷键：**`cmd + option + c` (macOS) / `ctrl + alt + c` (Windows/Linux)
 
 **执行流程：**
-1. 匹配文本（优先级：参数文本 > 光标选中文本 > hook.match + ~~匹配中文~~）
+1. 匹配文本（优先级：参数文本 > 光标选中文本 > hook.match + 自动匹配中文）
 2. 转换数据 (hook.convert)
 3. 写入文件 (hook.write)
 

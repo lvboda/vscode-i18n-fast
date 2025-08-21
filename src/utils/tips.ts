@@ -1,6 +1,6 @@
 import { window, MarkdownString } from 'vscode';
 
-import { PLUGIN_NAME } from './constant';
+import { PLUGIN_NAME } from '@/utils/constant';
 
 function genMessage(message: string, maxLength?: number) {
     return `[${PLUGIN_NAME}] ${maxLength ? (message.length > maxLength ? message.slice(0, maxLength) + '...' : message) : message}`;

@@ -13,11 +13,11 @@ const genI18nKey = require('./gen-i18n-key');
 */
 
 /**
- * @typedef {'document'} MatchType - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/types/enums.ts}
+ * @typedef {'document'} MatchType - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/constant.ts}
 */
 
 /**
- * @typedef {0 | 1 | 2 | 4 | 7} SupportType - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/types/enums.ts}
+ * @typedef {0 | 1 | 2 | 4 | 7} SupportType - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/constant.ts}
 */
 
 /**
@@ -46,7 +46,7 @@ const genI18nKey = require('./gen-i18n-key');
  */
 
 /**
- * @typedef {Object} I18n - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/i18n.ts}
+ * @typedef {Object} I18n - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/i18n.ts}
  * @property {(workspaceKey?: string) => Map<string, I18nGroup[]> | Map<string, Map<string, I18nGroup[]>>} get
  * @property {(workspaceKey?: string) => I18nGroup[]} getI18nGroups
 */
@@ -63,18 +63,18 @@ const genI18nKey = require('./gen-i18n-key');
  * @property {import('@babel/parser') & { traverse: import('@babel/traverse') }} babel - see {@link https://www.npmjs.com/package/@babel/parser}, {@link https://www.npmjs.com/package/@babel/traverse}
  * @property {typeof module.exports} hook
  * @property {I18n} i18n
- * @property {(str: string, opt: { separator?: string, lowerCase?: boolean, limit?: number, forceSplit?: boolean }) => string} convert2pinyin - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {(input: string | import('@babel/types').Node, start: number, end: number) => boolean} isInJsxElement - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {(input: string | import('@babel/types').Node, start: number, end: number) => boolean} isInJsxAttribute - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {(fileUri: Vscode.Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false, needSnapshot = true) => Promise<boolean>} writeFileByEditor - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {(message: string) => I18nGroup['valueAST'][]} getICUMessageFormatAST - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => ReturnType<T>} safeCall - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => Promise<ReturnType<T>>} asyncSafeCall - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {() => Record<string, string>} getConfig - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/config.ts}
- * @property {() => boolean} getLoading - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {(loading: boolean, text?: string) => void} setLoading - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
- * @property {(type: "info" | "warn" | "error", message: string, maxLength = 300, ...args: string[]) => void} showMessage - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/tips.ts}
- * @property {(document: Vscode.TextDocument) => ConvertGroup[]} matchChinese - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils.ts}
+ * @property {(str: string, opt: { separator?: string, lowerCase?: boolean, limit?: number, forceSplit?: boolean }) => string} convert2pinyin - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {(input: string | import('@babel/types').Node, start: number, end: number) => boolean} isInJsxElement - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {(input: string | import('@babel/types').Node, start: number, end: number) => boolean} isInJsxAttribute - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {(fileUri: Vscode.Uri | string, contentOrList: string | ({ range: Range, content: string }[]), isSave = false, needSnapshot = true) => Promise<boolean>} writeFileByEditor - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {(message: string) => I18nGroup['valueAST'][]} getICUMessageFormatAST - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => ReturnType<T>} safeCall - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => Promise<ReturnType<T>>} asyncSafeCall - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {() => Record<string, string>} getConfig - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/config.ts}
+ * @property {() => boolean} getLoading - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {(loading: boolean, text?: string) => void} setLoading - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
+ * @property {(type: "info" | "warn" | "error", message: string, maxLength = 300, ...args: string[]) => void} showMessage - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/tips.ts}
+ * @property {(document: Vscode.TextDocument) => ConvertGroup[]} matchChinese - see {@link https://github.com/lvboda/vscode-i18n-fast/blob/main/src/utils/index.ts}
 */
 
 module.exports = {
@@ -135,7 +135,7 @@ module.exports = {
 
         setLoading(true);
         genI18nKey(
-            needCreateGroups.map(({ i18nValue }) => ({ text: i18nValue, path: document.uri.fsPath })),
+            _.uniqBy(needCreateGroups, 'i18nValue').map(({ i18nValue }) => ({ text: i18nValue, path: document.uri.fsPath })),
             (await vscode.workspace.findFiles(getConfig().i18nFilePattern)).map(({ fsPath }) => fsPath)
         ).then(async (generated) => {
             needCreateGroups = needCreateGroups
@@ -172,12 +172,13 @@ module.exports = {
                     i18nFileContent = 'module.exports = {\n};';
                 }
 
-                const content = groups.reduce((pre, { i18nKey, i18nValue }) => {
-                    if (i18nKey && i18nValue) {
-                        pre += `\n  '${i18nKey}': '${i18nValue}',`;
-                    }
-                    return pre;
-                }, '');
+                const content = _.unionBy(groups, item => `${item.i18nKey}_${item.i18nValue}`)
+                    .reduce((pre, { i18nKey, i18nValue }) => {
+                        if (i18nKey && i18nValue) {
+                            pre += `\n  '${i18nKey}': '${i18nValue}',`;
+                        }
+                        return pre;
+                    }, '');
 
                 if (!content) continue;
                 await writeFileByEditor(path, i18nFileContent.replace(/(\s*)([,\s]*)(\}\s*;\s*)$/, `${/module\.exports\s*=\s*{\s*}\s*;/.test(i18nFileContent) ? '' : ','}${content}\n};`), true);

@@ -2,17 +2,27 @@ import { workspace, WorkspaceEdit, Range, Uri } from 'vscode';
 import { concat, replace, isNil, max } from 'lodash';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
-import { parse as parseMessageFormat, TYPE, isArgumentElement, isSelectElement, isPluralElement, isPoundElement, isDateElement, isNumberElement, isTimeElement } from '@formatjs/icu-messageformat-parser';
 import { isSupported, convertToPinyin } from 'tiny-pinyin';
 import stringWidth from 'string-width';
+import {
+  parse as parseMessageFormat,
+  TYPE,
+  isArgumentElement,
+  isSelectElement,
+  isPluralElement,
+  isPoundElement,
+  isDateElement,
+  isNumberElement,
+  isTimeElement
+} from '@formatjs/icu-messageformat-parser';
 
-import { SupportType } from './types/enums';
-import { showStatusBar, hideStatusBar } from './tips';
+import { SupportType } from '@/utils/constant';
+import { showStatusBar, hideStatusBar } from '@/utils/tips';
 
 import type { TextDocument, Disposable } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import type { JSXElement, JSXText, Node } from '@babel/types';
-import type { ConvertGroup } from './types';
+import type { ConvertGroup } from '@/types';
 
 const DISPLAY_ICU_TYPE_MAP = {
   [TYPE.date]: 'date',
@@ -24,11 +34,11 @@ const DISPLAY_ICU_TYPE_MAP = {
   [TYPE.literal]: 'literal',
   [TYPE.argument]: 'argument',
   [TYPE.number]: 'number',
-}
+};
 
 const getDisplayIcuType = (type: TYPE) => {
   return DISPLAY_ICU_TYPE_MAP[type] || type;
-}
+};
 
 const getDefaultAST = (codeText: string) => {
   return parse(codeText, {
@@ -41,7 +51,7 @@ const getDefaultAST = (codeText: string) => {
     allowUndeclaredExports: true,
     allowAwaitOutsideFunction: true,
   });
-}
+};
 
 export const safeCall = <T extends (...args: any[]) => any>(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => {
   try {
@@ -49,7 +59,7 @@ export const safeCall = <T extends (...args: any[]) => any>(fn: T, args: Paramet
   } catch (error) {
     return errorCb?.(error) || null;
   }
-}
+};
 
 export const asyncSafeCall = async <T extends (...args: any[]) => Promise<any>>(fn: T, args: Parameters<T>, errorCb?: (error: any) => ReturnType<T>) => {
   try {
@@ -57,11 +67,11 @@ export const asyncSafeCall = async <T extends (...args: any[]) => Promise<any>>(
   } catch (error) {
     return errorCb?.(error);
   }
-}
+};
 
 export const getICUMessageFormatAST = (message: string) => {
   return parseMessageFormat(message, { ignoreTag: true, requiresOtherClause: false });
-}
+};
 
 // 获取注释位置
 const getNotePositionList = (text: string, startNote: string, endNote: string) => {
@@ -76,7 +86,7 @@ const getNotePositionList = (text: string, startNote: string, endNote: string) =
     }
   }
   return list;
-}
+};
 
 const chineseRegex = /[\u4e00-\u9fa5]/;
 const chineseRegex2 = /[\u4e00-\u9fa5]+|[\u4e00-\u9fa5]/g;
@@ -170,14 +180,14 @@ export const matchChinese = (document: TextDocument) => {
     replaceKeys.forEach((replaceParams) => item.i18nValue.replace(...replaceParams));
     return item;
   });
-}
+};
 
 type Convert2pinyinOpt = {
   separator?: string;
   lowerCase?: boolean;
   limit?: number;
   forceSplit?: boolean;
-}
+};
 export const convert2pinyin = (str: string, opt: Convert2pinyinOpt) => {
   if (!isSupported()) {
     throw new Error('current environment does not support converting to pinyin.');
@@ -216,7 +226,7 @@ export const convert2pinyin = (str: string, opt: Convert2pinyinOpt) => {
   }
 
   return str;
-}
+};
 
 export const isInJsxElement = (input: string | Node, start: number, end: number) => {
   let AST: Node;
@@ -229,7 +239,7 @@ export const isInJsxElement = (input: string | Node, start: number, end: number)
   let inJsx = false;
   const checkJSXText = (node: JSXText) => {
     return !isNil(node.start) && !isNil(node.end) && start >= node.start && end <= node.end;
-  }
+  };
   const checkJSXChildren = (node: any) => {
     const nodeStart = node?.openingElement?.end || node?.openingFragment?.end;
     const nodeEnd = node?.closingElement?.start || node?.closingFragment?.start;
@@ -426,7 +436,7 @@ const commonProcess = (node: MessageFormatElement): string => {
   }
 
   return node.value;
-}
+};
 
 export const AST2readableStr = (ast: MessageFormatElement[]) => {
   const processNode = (node: MessageFormatElement | MessageFormatElement[]): string => {
@@ -440,9 +450,9 @@ export const AST2readableStr = (ast: MessageFormatElement[]) => {
     }
 
     return commonProcess(node);
-  }
+  };
   return processNode(ast);
-}
+};
 
 export const AST2formattedStr = (ast: MessageFormatElement[]) => {
   const processNode = (node: MessageFormatElement | MessageFormatElement[], indent = 0): string => {
@@ -461,7 +471,7 @@ export const AST2formattedStr = (ast: MessageFormatElement[]) => {
     }
 
     return commonProcess(node);
-  }
+  };
 
   return processNode(ast);
 };
@@ -482,11 +492,11 @@ export const truncateByDisplayWidth = (text: string, maxWidth = 60, ellipsis = '
   }
 
   return result;
-}
+};
 
 export const getWorkspaceKey = () => {
   return workspace.workspaceFolders?.[0]?.uri.fsPath || workspace.name;
-}
+};
 
 let loadingCount = 0;
 export const getLoading = () => loadingCount > 0;
@@ -497,7 +507,7 @@ export const setLoading = (loading: boolean, text = ' $(loading~spin) generating
   } else {
     hideStatusBar();
   }
-}
+};
 
 export const checkSupportType = (checkType: SupportType, type?: SupportType) => {
   if (!type) {
@@ -505,10 +515,18 @@ export const checkSupportType = (checkType: SupportType, type?: SupportType) => 
   }
 
   return (type & checkType) !== 0;
-}
+};
 
 export const dynamicRequire = (path: string) => {
   // delete cache
   delete __non_webpack_require__.cache[__non_webpack_require__.resolve(path)];
   return __non_webpack_require__(path);
-}
+};
+
+export const asyncMap = async <T, R>(array: T[], fn: (item: T) => Promise<R>): Promise<R[]> => {
+    return array.reduce(async (promise, item) => {
+        const results = await promise;
+        const result = await fn(item);
+        return [...results, result];
+    }, Promise.resolve([] as R[]));
+};

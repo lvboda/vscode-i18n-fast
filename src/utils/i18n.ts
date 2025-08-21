@@ -1,13 +1,13 @@
 import { workspace } from "vscode";
 
-import Hook from './hook';
-import { getConfig } from "./config";
-import { FILE_IGNORE } from './constant';
-import { getWorkspaceKey } from './utils';
-import Watcher, { WATCH_STATE } from './watcher';
+import Hook from '@/utils/hook';
+import { getConfig } from "@/utils/config";
+import Watcher from '@/utils/watcher';
+import { FILE_IGNORE, WatchState } from '@/utils/constant';
+import { getWorkspaceKey } from '@/utils';
 
 import type { Uri } from 'vscode';
-import type { I18nGroup } from "./types";
+import type { I18nGroup } from "@/types";
 
 type PathMap = Map<string, I18nGroup[]>;
 type WorkspaceMap = Map<string, PathMap>;
@@ -59,16 +59,16 @@ export default class I18n {
             return;
         }
 
-        const watchCallback = async (state: WATCH_STATE, uri: Uri) => {
+        const watchCallback = async (state: WatchState, uri: Uri) => {
             const pathMap = this.i18nMap.get(workspaceKey) || new Map();
 
             switch (state) {
-                case WATCH_STATE.CREATE:
-                case WATCH_STATE.CHANGE:
+                case WatchState.Create:
+                case WatchState.Change:
                     pathMap.set(uri.fsPath, await Hook.getInstance().collectI18n({ i18nFileUri: uri }));
                     this.i18nMap.set(workspaceKey, pathMap);
                     break;
-                case WATCH_STATE.DELETE:
+                case WatchState.Delete:
                     pathMap.delete(uri.fsPath);
                     this.i18nMap.set(workspaceKey, pathMap);
                     break; 
@@ -80,7 +80,7 @@ export default class I18n {
         // init
         const i18nFileUris = await workspace.findFiles(i18nFilePattern, FILE_IGNORE);
         for (const uri of i18nFileUris) {
-            await watchCallback(WATCH_STATE.CHANGE, uri);
+            await watchCallback(WatchState.Change, uri);
         }
 
         const watcher = await new Watcher().watch(i18nFilePattern, watchCallback);
