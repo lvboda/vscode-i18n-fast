@@ -36,11 +36,13 @@ const showI18nKeyPicker = async (existingEntries: I18nGroup[]): Promise<symbol |
         })),
         {
             key: PICKER_ACTION.IGNORE,
-            label: localize("handler.ignore")
+            label: localize("handler.ignore"),
+            description: localize("handler.ignore.desc")
         },
         {
             key: PICKER_ACTION.SKIP,
-            label: localize("handler.skip")
+            label: localize("handler.skip"),
+            description: localize("handler.skip.desc")
         }
     ];
 
