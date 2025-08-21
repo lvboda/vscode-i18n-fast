@@ -1,9 +1,9 @@
 import { window, env, commands } from 'vscode';
 
-import { asyncInvokeWithErrorHandler } from '../error';
-import { COMMAND_CONVERT_KEY } from '../constant';
+import { asyncInvokeWithErrorHandler } from '@/utils/error';
+import { COMMAND_CONVERT_KEY } from '@/utils/constant';
 
-import type { ConvertGroup } from '../types';
+import type { ConvertGroup } from '@/types';
 
 /**
  * 处理粘贴并转换功能

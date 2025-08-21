@@ -6,11 +6,11 @@ import lodash from 'lodash';
 import qs from 'qs';
 import crypto from 'crypto-js';
 
-import I18n from './i18n';
-import { getConfig } from './config';
-import { showMessage } from './tips';
-import { FILE_IGNORE, WatchState } from './constant';
-import Watcher from './watcher';
+import I18n from '@/utils/i18n';
+import { getConfig } from '@/utils/config';
+import { showMessage } from '@/utils/tips';
+import { FILE_IGNORE, WatchState } from '@/utils/constant';
+import Watcher from '@/utils/watcher';
 import {
     convert2pinyin,
     isInJsxElement,
@@ -24,11 +24,11 @@ import {
     setLoading,
     dynamicRequire,
     matchChinese,
-} from './utils';
+} from '@/utils';
 
-import type { TextDocument, Uri, ExtensionContext } from 'vscode'
-import type { MatchType } from './constant';
-import type { ConvertGroup, I18nGroup } from './types';
+import type { TextDocument, Uri, ExtensionContext } from 'vscode';
+import type { MatchType } from '@/utils/constant';
+import type { ConvertGroup, I18nGroup } from '@/types';
 
 type WorkspaceHook = Map<string, Record<string, (context: Record<string, any>) => any>>;
 
@@ -143,7 +143,7 @@ class Hook {
             setLoading,
             showMessage,
             matchChinese
-        }
+        };
     }
 
     private async callHook<T = any>(hookName: string, context: Record<string, any>, defaultResult: T): Promise<T> {

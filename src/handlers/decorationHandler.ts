@@ -3,23 +3,16 @@ import { flatMapDeep, isNil, max } from 'lodash';
 import { match } from 'minimatch';
 import { AhoCorasick } from '@monyone/aho-corasick';
 
-import Hook from '../hook';
-import I18n from '../i18n';
-import { getConfig } from '../config';
-import { PLUGIN_NAME } from '../constant';
-import { asyncInvokeWithErrorHandler } from '../error';
-import { 
-    checkSupportType,
-    AST2readableStr,
-    AST2formattedStr,
-    safeCall,
-    truncateByDisplayWidth
-} from '../utils';
-import { MatchType, SupportType } from '../constant';
-import { translationDecorationType } from './decorations';
+import Hook from '@/utils/hook';
+import I18n from '@/utils/i18n';
+import { getConfig } from '@/utils/config';
+import { PLUGIN_NAME, MatchType, SupportType } from '@/utils/constant';
+import { asyncInvokeWithErrorHandler } from '@/utils/error';
+import { checkSupportType, AST2readableStr, AST2formattedStr, safeCall, truncateByDisplayWidth } from '@/utils';
+import { i18nValueDecorationType } from './decorations';
 
 import type { DecorationOptions } from 'vscode';
-import type { I18nGroup } from '../types';
+import type { I18nGroup } from '@/types';
 
 /**
  * 生成装饰器的渲染选项（显示翻译内容）
@@ -44,7 +37,7 @@ const generateRenderOptions = (i18nGroup: I18nGroup) => {
             contentText: truncateByDisplayWidth(displayText)
         }
     };
-}
+};
 
 /**
  * 生成悬停提示消息
@@ -78,7 +71,7 @@ const generateHoverMessage = (i18nGroup: I18nGroup) => {
     }
 
     return markdown;
-}
+};
 
 /**
  * 处理编辑器装饰（显示 i18n key 的翻译内容）
@@ -116,7 +109,7 @@ export const createDecorationHandler = () => {
         });
 
         const decorations = createDecorations(filteredEntries);
-        editor.setDecorations(translationDecorationType, decorations);
+        editor.setDecorations(i18nValueDecorationType, decorations);
     };
 
     return asyncInvokeWithErrorHandler(handler);
@@ -137,7 +130,7 @@ const expandVisibleRange = (visibleRange: Range, maxLines: number): Range => {
     );
     
     return new Range(expandedStart, expandedEnd);
-}
+};
 
 /**
  * 在指定范围内查找 i18n keys
@@ -178,7 +171,7 @@ const findI18nKeysInRange = (
     }
     
     return results;
-}
+};
 
 /**
  * 创建装饰选项
@@ -201,4 +194,4 @@ const createDecorations = (i18nEntries: I18nGroup[]): DecorationOptions[] => {
         
         return decorations;
     }, []);
-}
+};

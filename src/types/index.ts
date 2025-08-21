@@ -1,6 +1,6 @@
 import type { Range, DecorationOptions, Definition, DefinitionLink } from 'vscode';
 import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
-import type { SupportType, ConvertType, ConflictPolicy } from '../constant';
+import type { SupportType, ConvertType, ConflictPolicy } from '@/utils/constant';
 
 export type ConvertGroup = {
     i18nValue: string;
@@ -30,4 +30,4 @@ export type Config = {
     i18nFilePattern: string;
     autoMatchChinese: boolean;
     conflictPolicy: ConflictPolicy;
-}
+};

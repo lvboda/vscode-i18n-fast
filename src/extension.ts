@@ -1,17 +1,16 @@
 import { commands, languages, window, workspace } from 'vscode';
 import { debounce } from 'lodash';
 
-import Hook from './hook';
-import I18n from './i18n';
-import { getWorkspaceKey, FileSnapshotStack } from './utils';
-import { I18nJumpProvider, MemoryDocumentProvider } from './provider';
-import { COMMAND_CONVERT_KEY, COMMAND_PASTE_KEY, COMMAND_UNDO_KEY, PLUGIN_NAME } from './constant';
-import { 
-    createConvertHandler, 
-    createPasteHandler, 
-    createUndoHandler, 
-    createDecorationHandler 
-} from './handlers';
+import Hook from '@/utils/hook';
+import I18n from '@/utils/i18n';
+import { getWorkspaceKey, FileSnapshotStack } from '@/utils';
+import { COMMAND_CONVERT_KEY, COMMAND_PASTE_KEY, COMMAND_UNDO_KEY, PLUGIN_NAME } from '@/utils/constant';
+import { I18nJumpProvider } from '@/providers/I18nJumpProvider';
+import { MemoryDocumentProvider } from '@/providers/MemoryDocumentProvider';
+import { createConvertHandler } from '@/handlers/convertHandler';
+import { createPasteHandler } from '@/handlers/pasteHandler';
+import { createUndoHandler } from '@/handlers/undoHandler';
+import { createDecorationHandler } from '@/handlers/decorationHandler';
 
 import type { ExtensionContext } from 'vscode';
 

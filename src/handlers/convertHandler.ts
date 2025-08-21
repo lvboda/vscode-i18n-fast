@@ -1,21 +1,17 @@
 import { window, workspace, Range } from 'vscode';
 import { groupBy, isNil } from 'lodash';
 
-import Hook from '../hook';
-import I18n from '../i18n';
-import localize from '../localize';
-import { getConfig } from '../config';
-import { asyncInvokeWithErrorHandler } from '../error';
+import Hook from '@/utils/hook';
+import I18n from '@/utils/i18n';
+import localize from '@/utils/localize';
+import { getConfig } from '@/utils/config';
+import { asyncInvokeWithErrorHandler } from '@/utils/error';
+import { ConflictPolicy, ConvertType } from '@/utils/constant';
+import { FileSnapshotStack, asyncMap, matchChinese } from '@/utils';
 import { conflictDecorationType } from './decorations';
-import { 
-    FileSnapshotStack, 
-    asyncMap,
-    matchChinese 
-} from '../utils';
-import { ConflictPolicy, ConvertType } from '../constant';
 
 import type { TextDocument } from 'vscode';
-import type { ConvertGroup, I18nGroup } from '../types';
+import type { ConvertGroup, I18nGroup } from '@/types';
 
 const PICKER_ACTION = {
     IGNORE: Symbol('ignore'),
@@ -54,7 +50,7 @@ const showI18nKeyPicker = async (existingEntries: I18nGroup[]): Promise<symbol |
     });
 
     return result?.key;
-}
+};
 
 /**
  * 收集需要转换的文案组
@@ -94,7 +90,7 @@ const collectTextToConvert = async (
     }
 
     return matchedGroups;
-}
+};
 
 /**
  * 查找文本在文档中的位置
@@ -125,7 +121,7 @@ const findTextRangeInDocument = (
     }
 
     return undefined;
-}
+};
 
 /**
  * 显示冲突装饰并等待用户选择
@@ -160,7 +156,7 @@ const highlightConflictsAndWaitForChoice = async (
     editor.setDecorations(conflictDecorationType, []);
 
     return selectedKey;
-}
+};
 
 /**
  * 根据冲突策略处理文案组
@@ -219,7 +215,7 @@ const resolveConflictsByPolicy = async (
         default:
             return groups;
     }
-}
+};
 
 /**
  * 处理文本到 i18n key 的转换

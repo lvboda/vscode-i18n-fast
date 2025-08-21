@@ -1,14 +1,13 @@
 import { workspace } from "vscode";
 
-import Hook from './hook';
-import { getConfig } from "./config";
-import { FILE_IGNORE } from './constant';
-import { getWorkspaceKey } from './utils';
-import Watcher from './watcher';
-import { WatchState } from './constant';
+import Hook from '@/utils/hook';
+import { getConfig } from "@/utils/config";
+import Watcher from '@/utils/watcher';
+import { FILE_IGNORE, WatchState } from '@/utils/constant';
+import { getWorkspaceKey } from '@/utils';
 
 import type { Uri } from 'vscode';
-import type { I18nGroup } from "./types";
+import type { I18nGroup } from "@/types";
 
 type PathMap = Map<string, I18nGroup[]>;
 type WorkspaceMap = Map<string, PathMap>;

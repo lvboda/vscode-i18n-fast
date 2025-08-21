@@ -38,9 +38,9 @@ The extension operates through a 5-hook lifecycle that users implement in `.vsco
 
 ### Key Components
 - `src/extension.ts` - Extension activation and command registration
-- `src/hook.ts` - Dynamic hook loading and execution engine
-- `src/handler.ts` - Command handlers and UI interaction
-- `src/i18n.ts` - I18n data management and caching
+- `src/utils/hook.ts` - Dynamic hook loading and execution engine
+- `src/handlers/` - Command handlers and UI interaction
+- `src/utils/i18n.ts` - I18n data management and caching
 
 ### Hook Context API
 Hooks receive a rich context object with:
@@ -109,7 +109,7 @@ Hooks are CommonJS modules loaded dynamically:
 ## Common Tasks
 
 ### Adding New Hook Method
-1. Define method in `src/hook.ts`
+1. Define method in `src/utils/hook.ts`
 2. Add to hook context in `genContext()`
 3. Document in template at `example/i18n-fast.hook.template.js`
 

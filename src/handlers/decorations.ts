@@ -8,9 +8,10 @@ export const conflictDecorationType = window.createTextEditorDecorationType({
 });
 
 /**
- * 装饰器类型：用于显示 i18n key 的翻译内容
+ * 装饰器类型：在 i18n key 后面显示对应的值（value）
+ * 用于在编辑器中实时预览国际化文本的实际内容
  */
-export const translationDecorationType = window.createTextEditorDecorationType({
+export const i18nValueDecorationType = window.createTextEditorDecorationType({
     light: {
         after: {
             margin: '0 5px',

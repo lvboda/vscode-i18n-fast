@@ -1,6 +1,6 @@
-import localize from './localize';
-import { showMessage } from './tips';
-import { REPOSITORY_URL } from './constant';
+import localize from '@/utils/localize';
+import { showMessage } from '@/utils/tips';
+import { REPOSITORY_URL } from '@/utils/constant';
 
 type ErrorCallback = (error: Error) => any;
 

@@ -4,7 +4,7 @@ import { workspace, Uri, RelativePattern } from 'vscode';
 import { watch } from 'chokidar';
 import { isString } from 'lodash';
 
-import { WatchState } from './constant';
+import { WatchState } from '@/utils/constant';
 
 import type { GlobPattern, Disposable } from "vscode";
 import type { FSWatcher } from 'chokidar';

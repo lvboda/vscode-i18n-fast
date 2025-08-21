@@ -1,11 +1,7 @@
-import localize from '../localize';
-import { showMessage } from '../tips';
-import { asyncInvokeWithErrorHandler } from '../error';
-import { 
-    getLoading, 
-    FileSnapshotStack, 
-    writeFileByEditor 
-} from '../utils';
+import localize from '@/utils/localize';
+import { showMessage } from '@/utils/tips';
+import { asyncInvokeWithErrorHandler } from '@/utils/error';
+import { getLoading, FileSnapshotStack, writeFileByEditor } from '@/utils';
 
 /**
  * 处理撤销操作
