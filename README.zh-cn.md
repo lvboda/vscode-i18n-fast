@@ -138,7 +138,7 @@ hook 文件位置根据 [config.hookFilePattern](#插件配置) 来找，默认�
 **快捷键：**`cmd + option + c` (macOS) / `ctrl + alt + c` (Windows/Linux)
 
 **执行流程：**
-1. 匹配文本（优先级：参数文本 > 光标选中文本 > hook.match + ~~匹配中文~~）
+1. 匹配文本（优先级：参数文本 > 光标选中文本 > hook.match + 自动匹配中文）
 2. 转换数据 (hook.convert)
 3. 写入文件 (hook.write)
 

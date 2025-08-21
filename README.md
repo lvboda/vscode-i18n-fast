@@ -138,7 +138,7 @@ The convert command transforms matched text into the i18n format.
 **Shortcut:** `cmd + option + c` (macOS) / `ctrl + alt + c` (Windows/Linux)
 
 **Execution Flow:**
-1. Match text (priority: parameter text > selected text > hook.match + ~~Chinese matching~~)
+1. Match text (priority: parameter text > selected text > hook.match + Chinese auto-matching)
 2. Convert data (via hook.convert)
 3. Write to file (via hook.write)
 
