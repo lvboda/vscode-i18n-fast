@@ -232,7 +232,7 @@ export const createConvertHandler = () => {
 
         FileSnapshotStack.getInstance().next();
         
-        const document = editor.document;
+        const { document } = editor;
         const documentText = document.getText();
         const { conflictPolicy } = getConfig();
 
