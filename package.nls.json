@@ -1,8 +1,8 @@
 {
     "package.description": "A hook-driven i18n plugin that supports diverse development scenarios.",
-    "package.commands.convert": "Convert",
-    "package.commands.paste": "Paste",
-    "package.commands.undo": "Undo",
+    "package.commands.convert": "I18n Fast: Convert",
+    "package.commands.paste": "I18n Fast: Paste",
+    "package.commands.undo": "I18n Fast: Undo",
     
     "package.configuration.title": "i18n-fast configuration",
     "package.configuration.hookFilePattern": "hook file pattern",
