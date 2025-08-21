@@ -10,6 +10,7 @@ import 'dotenv/config';
 const REPO_OWNER = 'lvboda';
 const REPO_NAME = 'vscode-i18n-fast';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const OPEN_VSX_TOKEN = process.env.OPEN_VSX_TOKEN;
 
 if (!GITHUB_TOKEN) {
   throw new Error('please set GITHUB_TOKEN environment variable');
@@ -100,6 +101,12 @@ async function publishToVscode() {
   console.log(chalk.green('✅ Published to VS Code Marketplace'));
 }
 
+async function publishToOpenVsx() {
+  console.log(chalk.blue('Publishing to Open VSX Registry...'));
+  await $`pnpm npx ovsx publish -p ${OPEN_VSX_TOKEN} --no-dependencies`;
+  console.log(chalk.green('✅ Published to Open VSX Registry'));
+}
+
 async function gitPush({ targetVersion }) {
   console.log(chalk.blue('Pushing code and tags...'));
 
@@ -176,6 +183,10 @@ const taskList = [
     task: publishToVscode,
   },
   {
+    key: 'publishToOpenVsx',
+    task: publishToOpenVsx,
+  },
+  {
     key: 'gitPush',
     task: gitPush,
   },
@@ -194,7 +205,7 @@ const taskList = [
 async function bootstrap() {
   try {
     const targetVersion = argv['version'] || argv['v'];
-    const tasksStr = argv['tasks'] || argv['t'] || 'preCheck,updateVersion,updateChangelog,publishToVscode,gitPush,publishToGithub';
+    const tasksStr = argv['tasks'] || argv['t'] || 'preCheck,updateVersion,updateChangelog,publishToVscode,publishToOpenVsx,gitPush,publishToGithub';
     const tasks = tasksStr.split(',');
 
     if (!tasks.length) {
@@ -211,7 +222,7 @@ async function bootstrap() {
       Object.assign(context, await taskList.find(t => t.key === task).task(context) || {});
     }
 
-    if (tasks.some(task => ['publishToVscode', 'publishToGithub'].includes(task))) {
+    if (tasks.some(task => ['publishToVscode', 'publishToOpenVsx', 'publishToGithub'].includes(task))) {
       console.log(chalk.green('🎉 Release completed!'));  
     } else {
       console.log(chalk.green('✅ All tasks finished!'));

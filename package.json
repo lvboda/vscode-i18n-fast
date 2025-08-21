@@ -146,8 +146,9 @@
     "lint": "eslint src --ext ts",
     "publish": "npx zx scripts/publish.mjs",
     "publish:pre": "npx zx scripts/publish.mjs --tasks preCheck,updateVersion,updateChangelog",
-    "publish:all": "npx zx scripts/publish.mjs --tasks publishToVscode,gitPush,publishToGithub",
+    "publish:all": "npx zx scripts/publish.mjs --tasks publishToVscode,publishToOpenVsx,gitPush,publishToGithub",
     "publish:vscode": "npx zx scripts/publish.mjs --tasks publishToVscode",
+    "publish:openvsx": "npx zx scripts/publish.mjs --tasks publishToOpenVsx",
     "publish:github": "npx zx scripts/publish.mjs --tasks gitPush,publishToGithub",
     "package": "pnpm npx vsce package --no-dependencies",
     "package:alpha": "npx zx scripts/publish.mjs --tasks packageVsix --release prerelease --identifier alpha"
