@@ -244,11 +244,9 @@ export const createConvertHandler = () => {
 
         const existingI18nEntries = I18n.getInstance().getI18nGroups();
         const processedRanges: Range[] = [];
-
-        const groupedByText = groupBy(convertGroups, 'i18nValue');
         
         convertGroups = (await asyncMap(
-            Object.entries(groupedByText),
+            Object.entries(groupBy(convertGroups, 'i18nValue')),
             async ([text, groups]) => {
                 const existingMatches = existingI18nEntries.filter(
                     entry => entry.value === text
