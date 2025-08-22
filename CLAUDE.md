@@ -17,12 +17,17 @@ pnpm run watch        # Watch mode for development
 pnpm run lint         # ESLint for src/**/*.ts
 
 # Build & Package
-pnpm run pkg          # Production build
-pnpm run package      # Create VSIX package
-pnpm run package:alpha # Create alpha release
+pnpm run pkg          # Production build with webpack (minified)
+pnpm run package      # Create VSIX package using vsce
+pnpm run package:alpha # Create alpha/prerelease VSIX
 
-# Publishing
-pnpm run publish      # Full publish pipeline (pre-checks + VSCode + GitHub)
+# Publishing (requires GITHUB_TOKEN and OPEN_VSX_TOKEN env vars)
+pnpm run publish      # Full publish pipeline (all steps below)
+pnpm run publish:pre  # Pre-checks, version update, changelog
+pnpm run publish:all  # Publish to all marketplaces
+pnpm run publish:vscode   # VSCode Marketplace only
+pnpm run publish:openvsx  # Open VSX Registry only
+pnpm run publish:github   # GitHub release only
 ```
 
 ## Architecture
@@ -41,6 +46,9 @@ The extension operates through a 5-hook lifecycle that users implement in `.vsco
 - `src/utils/hook.ts` - Dynamic hook loading and execution engine
 - `src/handlers/` - Command handlers and UI interaction
 - `src/utils/i18n.ts` - I18n data management and caching
+- `src/providers/` - VSCode providers (jump definitions, memory documents)
+- `src/utils/watcher.ts` - File watching for hook and i18n files
+- `src/utils/FileSnapshotStack.ts` - Undo/redo support for file changes
 
 ### Hook Context API
 Hooks receive a rich context object with:
@@ -50,19 +58,35 @@ Hooks receive a rich context object with:
 - I18n instance: `I18n.getInstance()`
 
 ### Data Types
-Key type to understand:
+Key types to understand:
 ```typescript
 type ConvertGroup = {
     i18nValue: string;      // Text to convert
+    matchedText?: string;   // Original matched text
     range?: Range;          // Position in document
     i18nKey?: string;       // Generated key
-    type?: ConvertType;     // New or Exist
+    params?: Record<string, any>;  // Custom params
+    overwriteText?: string; // Text to replace with
+    type?: ConvertType;     // 'new' or 'exist'
+}
+
+type I18nGroup = {
+    key: string;            // i18n key
+    value: string;          // i18n value
+    valueAST?: MessageFormatElement[]; // Parsed ICU format
+    filePath?: string;      // Source file
+    line?: number;          // Line number
+    range?: Range;          // Document range
+    supportType?: SupportType;  // Behavior flags
+    renderOption?: DecorationOptions['renderOptions'];
+    hoverMessage?: DecorationOptions['hoverMessage'];
+    locationLink?: Definition | DefinitionLink[];
 }
 ```
 
 ### Configuration
 Users configure via VSCode settings:
-- `i18nFilePattern` - Where to find i18n files
+- `i18nFilePattern` - Glob pattern for i18n files (supports workspace-specific patterns)
 - `hookFilePattern` - Hook file location (default: `.vscode/i18n-fast.hook.js`)
 - `conflictPolicy` - How to handle duplicates: `reuse`|`ignore`|`picker`|`smart`
 - `autoMatchChinese` - Auto-detect Chinese text
@@ -102,9 +126,15 @@ return asyncInvokeWithErrorHandler(handler);
 
 ### Hook Loading
 Hooks are CommonJS modules loaded dynamically:
-- Cached and watched for changes
+- Cached and watched for changes via `chokidar`
 - Reloaded on file modification
 - Errors are caught and displayed to user
+- Support for requiring project dependencies
+
+### Commands & Keybindings
+- **Convert** (`Ctrl+Alt+C` / `Cmd+Alt+C`): Convert selected text to i18n
+- **Paste** (`Ctrl+Alt+V` / `Cmd+Alt+V`): Paste and convert clipboard text
+- **Undo** (`Ctrl+Alt+B` / `Cmd+Alt+B`): Undo last file operation
 
 ## Common Tasks
 
@@ -128,10 +158,20 @@ context.showMessage('info', 'Debug: ' + JSON.stringify(data));
 
 ## Release Process
 
-1. Update version in `package.json`
-2. Run `pnpm run publish` - handles everything:
-   - Pre-checks (lint, compile)
-   - Version update
-   - Changelog generation
-   - VSCode Marketplace publish
-   - GitHub release creation
+The release process is automated via `scripts/publish.mjs`:
+
+1. **Manual Steps:**
+   - Update version in `package.json` (or let script auto-increment)
+   - Set environment variables: `GITHUB_TOKEN`, `OPEN_VSX_TOKEN` (optional)
+
+2. **Automated Steps (via `pnpm run publish`):**
+   - Pre-checks: lint and compile validation
+   - Version update (if not manually done)
+   - Changelog generation from git commits
+   - VSIX package creation
+   - VSCode Marketplace publishing (via vsce)
+   - Open VSX publishing (if token provided)
+   - Git tag creation and push
+   - GitHub release with VSIX attachment
+
+The script supports partial execution via `--tasks` flag for specific steps.
