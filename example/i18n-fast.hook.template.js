@@ -118,6 +118,6 @@ module.exports = {
      * @returns {I18nGroup[] | Promise<I18nGroup[]>}
      */
     matchI18n(context) {
-        return [];
+        return context.i18nGroups;
     },
 };
