@@ -18,3 +18,4 @@ pnpm-lock.yaml
 scripts/**
 out/**
 assets/*.md
+assets/vscode-marketplace.png
