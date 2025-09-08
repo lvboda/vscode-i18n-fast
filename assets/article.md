@@ -519,7 +519,7 @@ Hook Example 列表：https://github.com/lvboda/vscode-i18n-fast/labels/hook%20e
 [I18n Fast](https://github.com/lvboda/vscode-i18n-fast) 已经开源：
 
 - **GitHub**: https://github.com/lvboda/vscode-i18n-fast
-- **VSCode Marketplace**: https://marketplace.visualstudio.com/items?itemName=lvboda.i18n-fast
+- **VSCode Marketplace**: https://marketplace.visualstudio.com/items?itemName=lvboda.vscode-i18n-fast
 - **Hook 模版**: https://github.com/lvboda/vscode-i18n-fast/blob/main/example/i18n-fast.hook.template.js
 - **Hook 示例**: https://github.com/lvboda/vscode-i18n-fast/labels/hook%20example
 - **问题反馈**: https://github.com/lvboda/vscode-i18n-fast/issues
